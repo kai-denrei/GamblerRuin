@@ -204,32 +204,7 @@ function InfoTip({ term, children }) {
   );
 }
 
-function ChartTooltip({ active, payload }) {
-  if (!active || !payload?.length) return null;
-  // Scan all payload entries (Line + Scatter are separate)
-  let k = null, cf = null, mc = null;
-  for (const entry of payload) {
-    const d = entry?.payload;
-    if (!d) continue;
-    if (d.k != null) k = d.k;
-    if (d.cf != null && d.cf > 0) cf = d.cf;
-    if (d.mc != null && d.mc > 0) mc = d.mc;
-  }
-  if (k === null) return null;
-  const ruin = cf != null ? 100 - cf : null;
-  return (
-    <div style={{
-      background: C.panel, border: `1px solid ${C.border}`,
-      padding: "8px 12px", fontFamily: "monospace", fontSize: 11,
-    }}>
-      <div style={{ color: C.muted, marginBottom: 4 }}>Bet size</div>
-      <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>{fmt(k)}</div>
-      {cf != null && <div style={{ color: C.amber }}>Closed-form: {cf.toFixed(6)}%</div>}
-      {mc != null && <div style={{ color: C.green }}>Monte Carlo: {mc.toFixed(4)}%</div>}
-      {ruin != null && <div style={{ color: C.red, marginTop: 4 }}>Risk of ruin: {ruin.toFixed(4)}%</div>}
-    </div>
-  );
-}
+// ChartTooltip moved inside App for access to B, safeT, p
 
 function App() {
   const [B, setB] = useState(10_000_000);
@@ -246,6 +221,36 @@ function App() {
 
   const p = edgeToP(edge);
   const safeT = Math.max(T, B * 2);
+
+  // Tooltip: compute CF directly from gruin() for the hovered k
+  // This avoids Recharts' broken index-based data alignment
+  const renderTooltip = useCallback(({ active, payload }) => {
+    if (!active || !payload?.length) return null;
+    // Find the k value — prefer MC scatter data (exact k), fall back to curve
+    let k = null, mc = null;
+    for (const entry of payload) {
+      const d = entry?.payload;
+      if (!d) continue;
+      if (d.mc != null && d.k != null) { k = d.k; mc = d.mc; }
+      if (k === null && d.k != null) k = d.k;
+    }
+    if (k === null) return null;
+    // Always compute CF fresh from the k value
+    const cf = gruin(B, safeT, k, p) * 100;
+    const ruin = 100 - cf;
+    return (
+      <div style={{
+        background: C.panel, border: `1px solid ${C.border}`,
+        padding: "8px 12px", fontFamily: "monospace", fontSize: 11,
+      }}>
+        <div style={{ color: C.muted, marginBottom: 4 }}>Bet size</div>
+        <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>{fmt(k)}</div>
+        <div style={{ color: C.amber }}>Closed-form: {cf.toFixed(6)}%</div>
+        {mc != null && <div style={{ color: C.green }}>Monte Carlo: {mc.toFixed(4)}%</div>}
+        <div style={{ color: C.red, marginTop: 4 }}>Risk of ruin: {ruin.toFixed(2)}%</div>
+      </div>
+    );
+  }, [B, safeT, p]);
 
   const curve = useMemo(() => {
     const minK = Math.max(Math.round(B / 3000), 1000);
@@ -518,7 +523,7 @@ function App() {
                 tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
                 label={{ value: "P(reach target)", angle: -90, position: "insideLeft", offset: 12, fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
               />
-              <Tooltip content={<ChartTooltip />} />
+              <Tooltip content={renderTooltip} />
               <Line type="monotone" dataKey="cf" stroke={C.amber} dot={false} strokeWidth={2} name="Closed-form" />
               {mcDots.length > 0 && (
                 <Scatter data={mcDots} dataKey="mc" fill={C.green} name="Monte Carlo" />
