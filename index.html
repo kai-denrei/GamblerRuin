@@ -80,7 +80,23 @@ const C = {
 
 const edgeToP = e => (1 + e) / 2;
 
+// Continuous extension of Gambler's Ruin: no rounding, smooth curve.
+// For MC validation points, use gruinDiscrete which rounds to integer steps.
 function gruin(B, T, k, p) {
+  const n = B / k;
+  const N = T / k;
+  if (n <= 0 || N <= n) return 0;
+  if (Math.abs(p - 0.5) < 1e-10) return n / N;
+  const r = (1 - p) / p;
+  const logR = Math.log(r);
+  const rn = Math.exp(logR * n);
+  const rN = Math.exp(logR * N);
+  if (!isFinite(rN) || rN > 1e15) return Math.max(0, Math.min(1, Math.exp(-logR * (N - n))));
+  return Math.max(0, Math.min(1, (1 - rn) / (1 - rN)));
+}
+
+// Discrete version (integer steps) — used for MC comparison since MC walks integer steps
+function gruinDiscrete(B, T, k, p) {
   const n = Math.round(B / k);
   const N = Math.round(T / k);
   if (n <= 0 || N <= n) return 0;
@@ -235,8 +251,8 @@ function App() {
   // DS demo — closed-form instant, MC via worker
   useEffect(() => {
     const k1 = 25_000, k2 = 100_000;
-    const cf1 = gruin(B, safeT, k1, p);
-    const cf2 = gruin(B, safeT, k2, p);
+    const cf1 = gruinDiscrete(B, safeT, k1, p);
+    const cf2 = gruinDiscrete(B, safeT, k2, p);
     setDsResult({ k1, k2, cf1, cf2, mc1: null, mc2: null });
 
     const w = new Worker(window.__workerUrl);
@@ -303,7 +319,7 @@ function App() {
   }, []);
 
   const sanityRows = mcDots.map(({ k, mc: mcV, trials }) => {
-    const cfV = gruin(B, safeT, k, p);
+    const cfV = gruinDiscrete(B, safeT, k, p);
     const delta = Math.abs(mcV / 100 - cfV);
     const pass = delta < Math.max(cfV * 0.15, 0.0005);
     return { k, cfV, mcV, delta, pass, trials };
@@ -339,49 +355,6 @@ function App() {
       </div>
 
       <div style={{ padding: "24px 32px", maxWidth: 1000, margin: "0 auto" }}>
-
-        {/* Reasoning Block */}
-        <div style={{
-          border: `1px solid ${C.border}`, borderRadius: 4,
-          marginBottom: 24, overflow: "hidden",
-        }}>
-          <button
-            onClick={() => setReasonOpen(r => !r)}
-            style={{
-              width: "100%", padding: "10px 16px", background: C.panel,
-              border: "none", display: "flex", justifyContent: "space-between",
-              alignItems: "center", color: C.text,
-            }}
-          >
-            <span style={{ fontSize: 10, letterSpacing: "0.12em", color: C.amber }}>
-              REASONING BLOCK — Mathematical Foundation (sources cited before computation)
-            </span>
-            <span style={{ fontSize: 10, color: C.muted }}>{reasonOpen ? "collapse" : "expand"}</span>
-          </button>
-          {reasonOpen && (
-            <div style={{ padding: "16px 20px" }}>
-              {STEPS.map(({ id, claim, source }) => (
-                <div key={id} style={{
-                  marginBottom: 16, paddingLeft: 14,
-                  borderLeft: `2px solid ${C.subtle}`,
-                }}>
-                  <div style={{
-                    fontSize: 10, letterSpacing: "0.1em", color: C.amber,
-                    fontFamily: "monospace", marginBottom: 6,
-                  }}>{id}</div>
-                  <div style={{
-                    fontFamily: "'Source Serif 4', serif",
-                    fontSize: 13, lineHeight: 1.75, color: "#94a3b8",
-                  }}>{claim}</div>
-                  <div style={{
-                    fontSize: 11, color: C.muted, marginTop: 6,
-                    fontFamily: "'Source Serif 4', serif", fontStyle: "italic",
-                  }}>&#8627; {source}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Parameters */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
@@ -530,6 +503,49 @@ function App() {
               ? 'Closed-form curve loaded. Press "RUN MONTE CARLO" to overlay verification dots.'
               : `${mcDots.length} Monte Carlo points overlaid.`}
           </div>
+        </div>
+
+        {/* Reasoning Block */}
+        <div style={{
+          border: `1px solid ${C.border}`, borderRadius: 4,
+          marginBottom: 24, overflow: "hidden",
+        }}>
+          <button
+            onClick={() => setReasonOpen(r => !r)}
+            style={{
+              width: "100%", padding: "10px 16px", background: C.panel,
+              border: "none", display: "flex", justifyContent: "space-between",
+              alignItems: "center", color: C.text,
+            }}
+          >
+            <span style={{ fontSize: 10, letterSpacing: "0.12em", color: C.amber }}>
+              REASONING BLOCK — Mathematical Foundation (sources cited before computation)
+            </span>
+            <span style={{ fontSize: 10, color: C.muted }}>{reasonOpen ? "collapse" : "expand"}</span>
+          </button>
+          {reasonOpen && (
+            <div style={{ padding: "16px 20px" }}>
+              {STEPS.map(({ id, claim, source }) => (
+                <div key={id} style={{
+                  marginBottom: 16, paddingLeft: 14,
+                  borderLeft: `2px solid ${C.subtle}`,
+                }}>
+                  <div style={{
+                    fontSize: 10, letterSpacing: "0.1em", color: C.amber,
+                    fontFamily: "monospace", marginBottom: 6,
+                  }}>{id}</div>
+                  <div style={{
+                    fontFamily: "'Source Serif 4', serif",
+                    fontSize: 13, lineHeight: 1.75, color: "#94a3b8",
+                  }}>{claim}</div>
+                  <div style={{
+                    fontSize: 11, color: C.muted, marginTop: 6,
+                    fontFamily: "'Source Serif 4', serif", fontStyle: "italic",
+                  }}>&#8627; {source}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Dubins-Savage Demonstration */}
