@@ -206,17 +206,27 @@ function InfoTip({ term, children }) {
 
 function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload;
-  if (!d) return null;
+  // Scan all payload entries (Line + Scatter are separate)
+  let k = null, cf = null, mc = null;
+  for (const entry of payload) {
+    const d = entry?.payload;
+    if (!d) continue;
+    if (d.k != null) k = d.k;
+    if (d.cf != null && d.cf > 0) cf = d.cf;
+    if (d.mc != null && d.mc > 0) mc = d.mc;
+  }
+  if (k === null) return null;
+  const ruin = cf != null ? 100 - cf : null;
   return (
     <div style={{
       background: C.panel, border: `1px solid ${C.border}`,
       padding: "8px 12px", fontFamily: "monospace", fontSize: 11,
     }}>
       <div style={{ color: C.muted, marginBottom: 4 }}>Bet size</div>
-      <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>{fmt(d.k)}</div>
-      {d.cf !== undefined && <div style={{ color: C.amber }}>Closed-form: {d.cf.toFixed(6)}%</div>}
-      {d.mc !== undefined && <div style={{ color: C.green }}>Monte Carlo: {d.mc.toFixed(4)}%</div>}
+      <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>{fmt(k)}</div>
+      {cf != null && <div style={{ color: C.amber }}>Closed-form: {cf.toFixed(6)}%</div>}
+      {mc != null && <div style={{ color: C.green }}>Monte Carlo: {mc.toFixed(4)}%</div>}
+      {ruin != null && <div style={{ color: C.red, marginTop: 4 }}>Risk of ruin: {ruin.toFixed(4)}%</div>}
     </div>
   );
 }
@@ -325,6 +335,10 @@ function App() {
     return { k, cfV, mcV, delta, pass, trials };
   });
 
+  // Bold play: bet everything (k = B), compute P(reach T) and ruin
+  const boldP = gruin(B, safeT, B, p);
+  const ruinP = 1 - boldP;
+
   const dsMultiplier = dsResult && dsResult.cf1 > 1e-20 && dsResult.cf2 > 1e-20
     ? (dsResult.cf2 / dsResult.cf1).toLocaleString(undefined, { maximumSignificantDigits: 3 })
     : null;
@@ -423,6 +437,20 @@ function App() {
               </div>
               <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>
                 B = {fmt(B)} · edge = {(edge * 100).toFixed(2)}% · bold play = {fmt(B)}
+              </div>
+              <div style={{
+                marginTop: 8, padding: "8px 12px", borderRadius: 4,
+                background: `${C.red}12`, border: `1px solid ${C.red}30`,
+                display: "flex", gap: 16, alignItems: "baseline", flexWrap: "wrap",
+              }}>
+                <div style={{ fontSize: 10, color: C.red, letterSpacing: "0.08em" }}>
+                  BEST CASE (BOLD PLAY)
+                </div>
+                <div style={{ fontFamily: "monospace" }}>
+                  <span style={{ color: C.green, fontSize: 13 }}>P(target) = {(boldP * 100).toFixed(2)}%</span>
+                  <span style={{ color: C.muted, margin: "0 8px" }}>|</span>
+                  <span style={{ color: C.red, fontSize: 15, fontWeight: 700 }}>P(ruin) = {(ruinP * 100).toFixed(2)}%</span>
+                </div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
