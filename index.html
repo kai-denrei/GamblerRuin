@@ -413,10 +413,19 @@ self.onmessage = function(e) {
   const absEdge = Math.abs(edge);
   const p = (1 - absEdge) / 2;
   const results = [];
+  var MAX_STEPS = 5000000; // 5M step cap per trial — safety net
 
   for (let si = 0; si < betSizes.length; si++) {
     const k = betSizes[si];
     const N = trialsPerBet[si];
+
+    // N=0 means MC was skipped (infeasible)
+    if (N === 0) {
+      results.push({ betSize: k, prob: -1, avgBets: 0, medianBets: 0, trialsRun: 0, skipped: true });
+      self.postMessage({ type: 'progress', jobId, betIndex: si, trial: 0, totalTrials: 0, totalBets: betSizes.length, done: true });
+      continue;
+    }
+
     let wins = 0;
     let totalBets = 0;
     const betCounts = new Float64Array(N);
@@ -424,7 +433,7 @@ self.onmessage = function(e) {
     for (let i = 0; i < N; i++) {
       let bankroll = B;
       let bets = 0;
-      while (bankroll > 0 && bankroll < T) {
+      while (bankroll > 0 && bankroll < T && bets < MAX_STEPS) {
         const bet = Math.min(k, bankroll, T - bankroll);
         bets++;
         if (Math.random() < p) {
@@ -437,8 +446,7 @@ self.onmessage = function(e) {
       betCounts[i] = bets;
       if (bankroll >= T) wins++;
 
-      // Progress every 500 trials
-      if (i % 500 === 0) {
+      if (i % 200 === 0) {
         self.postMessage({ type: 'progress', jobId, betIndex: si, trial: i, totalTrials: N, totalBets: betSizes.length });
       }
     }
@@ -449,7 +457,8 @@ self.onmessage = function(e) {
       prob: wins / N,
       avgBets: totalBets / N,
       medianBets: betCounts[Math.floor(N / 2)],
-      trialsRun: N
+      trialsRun: N,
+      skipped: false
     });
 
     self.postMessage({ type: 'progress', jobId, betIndex: si, trial: N, totalTrials: N, totalBets: betSizes.length, done: true });
@@ -481,8 +490,6 @@ function setRunning(on) {
 }
 
 // Estimate expected steps per trial for a given bet size (biased random walk)
-// E[steps] = n(N-n) for fair game; for biased: E[steps] = (n - N*P) / (q - p)
-// where P = closed-form probability. Simplified: use n*(N-n) as upper bound.
 function estimateSteps(B, T, k) {
   const n = Math.round(B / k);
   const N = Math.round(T / k);
@@ -490,13 +497,17 @@ function estimateSteps(B, T, k) {
 }
 
 // Auto-scale trials: cap total work at ~500M steps to stay under ~5s in worker
+// If a SINGLE trial would exceed 5M steps, skip MC entirely (return 0 trials).
 const MAX_TOTAL_WORK = 500_000_000;
+const MAX_STEPS_PER_TRIAL = 5_000_000;
 
 function autoScaleTrials(B, T, betSizes, requestedN) {
   return betSizes.map(k => {
     const stepsPerTrial = estimateSteps(B, T, k);
     if (stepsPerTrial <= 0) return requestedN;
-    const maxTrials = Math.max(500, Math.floor(MAX_TOTAL_WORK / stepsPerTrial));
+    // If even one trial is infeasible, skip MC for this bet size
+    if (stepsPerTrial > MAX_STEPS_PER_TRIAL) return 0;
+    const maxTrials = Math.max(200, Math.floor(MAX_TOTAL_WORK / stepsPerTrial));
     return Math.min(requestedN, maxTrials);
   });
 }
@@ -513,10 +524,15 @@ function runMC(B, T, edge, betSizes, trialsPerBet) {
       if (msg.type === 'progress') {
         const status = document.getElementById('status');
         const betLabel = formatMoney(betSizes[msg.betIndex]);
-        const pct = ((msg.trial / msg.totalTrials) * 100).toFixed(0);
-        const scaledNote = trialsPerBet[msg.betIndex] < parseInt(document.getElementById('trials').value)
-          ? ` (auto-scaled to ${trialsPerBet[msg.betIndex].toLocaleString()})` : '';
-        status.innerHTML = `<span class="spinner"></span> MC: ${betLabel} — ${pct}% (${msg.betIndex + 1}/${msg.totalBets})${scaledNote}`;
+        const trials = trialsPerBet[msg.betIndex];
+        if (trials === 0) {
+          status.innerHTML = `<span class="spinner"></span> MC: ${betLabel} — skipped (too many steps/trial) (${msg.betIndex + 1}/${msg.totalBets})`;
+        } else {
+          const pct = msg.totalTrials > 0 ? ((msg.trial / msg.totalTrials) * 100).toFixed(0) : '0';
+          const scaledNote = trials < parseInt(document.getElementById('trials').value)
+            ? ` (auto-scaled to ${trials.toLocaleString()})` : '';
+          status.innerHTML = `<span class="spinner"></span> MC: ${betLabel} — ${pct}% (${msg.betIndex + 1}/${msg.totalBets})${scaledNote}`;
+        }
       }
       if (msg.type === 'result') {
         activeWorker = null;
@@ -604,7 +620,7 @@ function renderChart(betSizes, closedFormPs, mcPs) {
         },
         {
           label: 'Monte Carlo P(reach T)',
-          data: betSizes.map((k, i) => ({ x: k, y: mcPs[i] * 100 })),
+          data: betSizes.map((k, i) => mcPs[i] != null ? { x: k, y: mcPs[i] * 100 } : null).filter(Boolean),
           type: 'scatter',
           backgroundColor: '#ff6c8c', borderColor: '#ff6c8c',
           pointRadius: 6, pointHoverRadius: 8,
@@ -658,21 +674,32 @@ function renderSanity(betSizes, cfPs, mcResults) {
   section.style.display = 'block';
   const tbody = document.getElementById('sanity-body');
   tbody.innerHTML = '';
-  const requestedN = parseInt(document.getElementById('trials').value);
   betSizes.forEach((k, i) => {
-    const mcP = mcResults[i].prob;
-    const delta = Math.abs(cfPs[i] - mcP);
-    const pct = (delta * 100).toFixed(3);
-    const pass = delta < 0.01;
-    const scaled = mcResults[i].trialsRun < requestedN;
+    const r = mcResults[i];
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${formatMoney(k)}</td>
-      <td>${(cfPs[i] * 100).toFixed(4)}%</td>
-      <td>${(mcP * 100).toFixed(4)}%${scaled ? ' <span style="color:var(--yellow)" title="Trials auto-scaled to ' + mcResults[i].trialsRun.toLocaleString() + ' to prevent browser freeze">(' + mcResults[i].trialsRun.toLocaleString() + ' trials)</span>' : ''}</td>
-      <td>${pct}%</td>
-      <td class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL — Δ > 1%'}</td>
-    `;
+    if (r.skipped) {
+      tr.innerHTML = `
+        <td>${formatMoney(k)}</td>
+        <td>${(cfPs[i] * 100).toFixed(4)}%</td>
+        <td><span style="color:var(--text-dim)">skipped</span></td>
+        <td>—</td>
+        <td style="color:var(--yellow)">CF ONLY — too many steps/trial for MC</td>
+      `;
+    } else {
+      const mcP = r.prob;
+      const delta = Math.abs(cfPs[i] - mcP);
+      const pct = (delta * 100).toFixed(3);
+      const pass = delta < 0.01;
+      const requestedN = parseInt(document.getElementById('trials').value);
+      const scaled = r.trialsRun < requestedN;
+      tr.innerHTML = `
+        <td>${formatMoney(k)}</td>
+        <td>${(cfPs[i] * 100).toFixed(4)}%</td>
+        <td>${(mcP * 100).toFixed(4)}%${scaled ? ' <span style="color:var(--yellow)">(' + r.trialsRun.toLocaleString() + ' trials)</span>' : ''}</td>
+        <td>${pct}%</td>
+        <td class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL — Δ > 1%'}</td>
+      `;
+    }
     tbody.appendChild(tr);
   });
 }
@@ -685,14 +712,21 @@ function renderSecondary(betSizes, mcResults) {
   tbody.innerHTML = '';
   betSizes.forEach((k, i) => {
     const r = mcResults[i];
-    const medianHours = r.medianBets / rph;
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${formatMoney(k)}</td>
-      <td>${r.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
-      <td>${formatTime(medianHours)}</td>
-      <td>${(r.prob * 100).toFixed(4)}%</td>
-    `;
+    if (r.skipped) {
+      tr.innerHTML = `
+        <td>${formatMoney(k)}</td>
+        <td colspan="3" style="color:var(--text-dim)">MC skipped — closed-form only</td>
+      `;
+    } else {
+      const medianHours = r.medianBets / rph;
+      tr.innerHTML = `
+        <td>${formatMoney(k)}</td>
+        <td>${r.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
+        <td>${formatTime(medianHours)}</td>
+        <td>${(r.prob * 100).toFixed(4)}%</td>
+      `;
+    }
     tbody.appendChild(tr);
   });
 }
@@ -752,7 +786,8 @@ async function runSimulation() {
 
   try {
     const mcResults = await runMC(B, T, edge, betSizes, trialsPerBet);
-    const mcPs = mcResults.map(r => r.prob);
+    // For chart: only include non-skipped MC points
+    const mcPs = mcResults.map(r => r.skipped ? null : r.prob);
     status.textContent = 'Simulation complete.';
     setRunning(false);
 
