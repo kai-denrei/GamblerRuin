@@ -230,9 +230,28 @@
     margin-top: 0.5rem;
     font-style: italic;
   }
+  .nav-bar {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 2rem;
+    font-family: var(--mono);
+  }
+  .nav-bar a {
+    padding: 10px 20px; font-size: 11px; letter-spacing: 0.08em;
+    text-decoration: none; color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .nav-bar a:hover { color: var(--text); }
+  .nav-bar a.active { color: var(--accent); border-bottom-color: var(--accent); }
 </style>
 </head>
 <body>
+<nav class="nav-bar">
+  <a href="index.html" class="active">CLASSIC</a>
+  <a href="alternate.html">ALTERNATE</a>
+</nav>
 <div class="container">
   <header>
     <h1>Bold Play vs. Timid Play</h1>
