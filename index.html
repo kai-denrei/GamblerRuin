@@ -124,6 +124,70 @@ const STEPS = [
   },
 ];
 
+// ── Descriptions for key terms (hover on desktop, tap on mobile) ─────────────
+const TIPS = {
+  B: "The amount of money you start with. This is your initial capital before any bets are placed.",
+  T: "The goal amount you want to reach. The game ends when you hit this target or lose everything (ruin).",
+  edge: "The casino's built-in advantage on every bet. A -0.50% edge means you lose £0.50 on average per £100 wagered. The more negative, the worse the odds.",
+  p: "Your probability of winning any single bet. Derived from the house edge: p = (1 + edge) / 2. Below 0.5 means the game is subfair.",
+  mcTrials: "Number of random simulations run per data point. More trials = more accurate Monte Carlo estimate, but takes longer.",
+  boldPlay: "Betting the maximum possible (min of bankroll, target minus bankroll) each round. Dubins & Savage proved this uniquely maximizes the chance of reaching the target in a subfair game.",
+  timidPlay: "Betting the minimum amount each round. Gives more rounds of play but exposes you to the house edge for longer — strictly worse for reaching a target in a subfair game.",
+  closedForm: "The exact mathematical probability computed from the Gambler's Ruin formula. No simulation needed — this is the true answer.",
+  monteCarlo: "An empirical estimate obtained by simulating thousands of random game sessions and counting how many reach the target.",
+  subfair: "A game where the house has an advantage (win probability < 50%). Every casino game is subfair for the player.",
+};
+
+function InfoTip({ term, children }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const desc = TIPS[term];
+  if (!desc) return children;
+
+  // Close on outside click/touch
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
+
+  return (
+    <span ref={ref} style={{ position: "relative", display: "inline" }}>
+      <span
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onTouchStart={(e) => { e.preventDefault(); setOpen(o => !o); }}
+        style={{
+          borderBottom: `1px dotted ${C.muted}`,
+          cursor: "help",
+        }}
+      >
+        {children}
+      </span>
+      {open && (
+        <span style={{
+          position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
+          transform: "translateX(-50%)", width: 260, padding: "10px 12px",
+          background: "#1a2540", border: `1px solid ${C.border}`,
+          borderRadius: 6, fontSize: 11, lineHeight: 1.6,
+          color: C.text, zIndex: 1000, pointerEvents: "auto",
+          fontFamily: "'Source Serif 4', serif", fontWeight: 300,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+        }}>
+          {desc}
+          <span style={{
+            position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)",
+            width: 0, height: 0,
+            borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
+            borderTop: `6px solid #1a2540`,
+          }} />
+        </span>
+      )}
+    </span>
+  );
+}
+
 function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
@@ -268,7 +332,7 @@ function App() {
           </span>
         </div>
         <p style={{ color: C.muted, fontSize: 11, marginTop: 6, lineHeight: 1.6, maxWidth: 640 }}>
-          In a subfair game, P(reach target T) is strictly increasing in bet size.
+          In a <InfoTip term="subfair">subfair game</InfoTip>, P(reach target T) is strictly increasing in bet size.
           Larger bets are not riskier relative to goal — they are optimal.
           This simulation proves the claim via closed-form and Monte Carlo.
         </p>
@@ -321,24 +385,53 @@ function App() {
 
         {/* Parameters */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
-          {[
-            { label: "Starting Bankroll (B)", value: B, onChange: v => setB(Number(v)), min: 1e6, max: 50e6, step: 1e6, disp: fmt(B) },
-            { label: `Target (T) — ${(safeT / B).toFixed(0)}x bankroll`, value: T, onChange: v => setT(Math.max(Number(v), B * 2)), min: 10e6, max: 500e6, step: 10e6, disp: fmt(safeT) },
-            { label: `House Edge: ${(edge * 100).toFixed(2)}%  ·  p = ${edgeToP(edge).toFixed(4)}`, value: edge, onChange: v => setEdge(Number(v)), min: -0.05, max: -0.001, step: 0.001 },
-            { label: `Monte Carlo Trials: ${mcTrials.toLocaleString()} per point`, value: mcTrials, onChange: v => setMcTrials(Number(v)), min: 1000, max: 20000, step: 1000 },
-          ].map(({ label, value, onChange, min, max, step }) => (
-            <div key={label} style={{
-              background: C.panel, border: `1px solid ${C.border}`,
-              borderRadius: 4, padding: "12px 16px",
-            }}>
-              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em", marginBottom: 8 }}>{label}</div>
-              <input
-                type="range" min={min} max={max} step={step} value={value}
-                onChange={e => onChange(e.target.value)}
-                style={{ width: "100%" }}
-              />
+          {/* Bankroll */}
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em" }}>
+                <InfoTip term="B">Starting Bankroll (B)</InfoTip>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{fmt(B)}</div>
             </div>
-          ))}
+            <input type="range" min={1e6} max={50e6} step={1e6} value={B}
+              onChange={e => setB(Number(e.target.value))} style={{ width: "100%" }} />
+          </div>
+          {/* Target */}
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em" }}>
+                <InfoTip term="T">Target (T)</InfoTip>
+                <span style={{ marginLeft: 6, color: C.muted, fontSize: 10 }}>({(safeT / B).toFixed(0)}x bankroll)</span>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{fmt(safeT)}</div>
+            </div>
+            <input type="range" min={10e6} max={500e6} step={10e6} value={T}
+              onChange={e => setT(Math.max(Number(e.target.value), B * 2))} style={{ width: "100%" }} />
+          </div>
+          {/* Edge */}
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em" }}>
+                <InfoTip term="edge">House Edge</InfoTip>
+                {" · "}
+                <InfoTip term="p">p</InfoTip> = {edgeToP(edge).toFixed(4)}
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{(edge * 100).toFixed(2)}%</div>
+            </div>
+            <input type="range" min={-0.05} max={-0.001} step={0.001} value={edge}
+              onChange={e => setEdge(Number(e.target.value))} style={{ width: "100%" }} />
+          </div>
+          {/* MC Trials */}
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em" }}>
+                <InfoTip term="mcTrials">Monte Carlo Trials</InfoTip> per point
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{mcTrials.toLocaleString()}</div>
+            </div>
+            <input type="range" min={1000} max={20000} step={1000} value={mcTrials}
+              onChange={e => setMcTrials(Number(e.target.value))} style={{ width: "100%" }} />
+          </div>
         </div>
 
         {/* Main Chart */}
@@ -399,11 +492,11 @@ function App() {
           {/* Legend */}
           <div style={{ display: "flex", gap: 20, marginBottom: 12, paddingLeft: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.muted }}>
-              <div style={{ width: 24, height: 2, background: C.amber }} /> Closed-form exact
+              <div style={{ width: 24, height: 2, background: C.amber }} /> <InfoTip term="closedForm">Closed-form exact</InfoTip>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.muted }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} />
-              Monte Carlo (auto-scaled trials/pt)
+              <InfoTip term="monteCarlo">Monte Carlo</InfoTip> (auto-scaled trials/pt)
             </div>
           </div>
 
@@ -463,14 +556,14 @@ function App() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
             {dsResult && [
-              { label: "TIMID PLAY", sublabel: "£25k / bet", cf: dsResult.cf1, mc: dsResult.mc1, color: C.red, verdict: "Compounding erosion. House edge grinds you down." },
-              { label: "BOLD PLAY", sublabel: "£100k / bet", cf: dsResult.cf2, mc: dsResult.mc2, color: C.green, verdict: "Fewer rounds. House gets less time to work against you." },
-            ].map(({ label, sublabel, cf, mc: mcV, color, verdict }) => (
+              { label: "TIMID PLAY", tip: "timidPlay", sublabel: "£25k / bet", cf: dsResult.cf1, mc: dsResult.mc1, color: C.red, verdict: "Compounding erosion. House edge grinds you down." },
+              { label: "BOLD PLAY", tip: "boldPlay", sublabel: "£100k / bet", cf: dsResult.cf2, mc: dsResult.mc2, color: C.green, verdict: "Fewer rounds. House gets less time to work against you." },
+            ].map(({ label, tip, sublabel, cf, mc: mcV, color, verdict }) => (
               <div key={label} style={{
                 background: C.panel, border: `1px solid ${color}30`,
                 borderRadius: 4, padding: "14px 16px",
               }}>
-                <div style={{ fontSize: 10, color, letterSpacing: "0.1em", marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 10, color, letterSpacing: "0.1em", marginBottom: 4 }}><InfoTip term={tip}>{label}</InfoTip></div>
                 <div style={{ fontSize: 10, color: C.muted, marginBottom: 14 }}>{sublabel}</div>
                 <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Closed-form P(reach T)</div>
                 <div style={{ fontSize: 20, fontWeight: 700, color, marginBottom: 10, fontFamily: "monospace" }}>
