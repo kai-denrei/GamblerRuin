@@ -243,11 +243,11 @@
   <div class="controls">
     <div class="control-group">
       <label>Starting Bankroll (B)</label>
-      <input type="text" id="bankroll" value="10000000" placeholder="e.g. 10000000">
+      <input type="text" id="bankroll" value="10,000,000" placeholder="e.g. 10,000,000">
     </div>
     <div class="control-group">
       <label>Target (T)</label>
-      <input type="text" id="target" value="100000000" placeholder="e.g. 100000000">
+      <input type="text" id="target" value="100,000,000" placeholder="e.g. 100,000,000">
     </div>
     <div class="control-group">
       <label>House Edge (e)</label>
@@ -265,14 +265,15 @@
     <div class="bet-sizes-row">
       <div class="control-group">
         <label>Bet Sizes (comma-separated)</label>
-        <input type="text" id="betSizes" value="25000, 100000, 500000, 1000000, 2500000, 5000000, 10000000" placeholder="25000, 100000, ...">
+        <input type="text" id="betSizes" value="25,000, 100,000, 500,000, 1,000,000, 2,500,000, 5,000,000, 10,000,000" placeholder="25,000, 100,000, ...">
       </div>
     </div>
   </div>
 
   <div class="actions">
-    <button class="btn btn-primary" onclick="runSimulation()">Run Simulation</button>
-    <button class="btn btn-demo" onclick="runDubinsSavageDemo()">Dubins-Savage Demo</button>
+    <button class="btn btn-primary" id="runBtn" onclick="runSimulation()">Run Simulation</button>
+    <button class="btn btn-demo" id="demoBtn" onclick="runDubinsSavageDemo()">Dubins-Savage Demo</button>
+    <button class="btn btn-secondary" id="cancelBtn" onclick="cancelSimulation()" style="display:none;">Cancel</button>
   </div>
 
   <div id="status"></div>
@@ -340,83 +341,176 @@
 
 <script>
 // ============================================================
+// Comma-formatted number inputs
+// ============================================================
+function formatWithCommas(n) {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function setupCommaInput(id) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', function () {
+    const pos = this.selectionStart;
+    const oldLen = this.value.length;
+    const raw = this.value.replace(/[^0-9]/g, '');
+    if (raw) this.value = formatWithCommas(raw);
+    const newLen = this.value.length;
+    this.setSelectionRange(pos + newLen - oldLen, pos + newLen - oldLen);
+  });
+}
+setupCommaInput('bankroll');
+setupCommaInput('target');
+
+// Format bet sizes on blur
+document.getElementById('betSizes').addEventListener('blur', function () {
+  const parts = this.value.split(',').map(s => s.trim().replace(/[^0-9]/g, '')).filter(Boolean);
+  this.value = parts.map(p => formatWithCommas(p)).join(', ');
+});
+
+// ============================================================
 // Closed-form calculator
 // ============================================================
 function closedFormP(B, T, edge, k) {
-  // edge is negative, e.g. -0.005 for -0.5%
-  // p = probability of winning a single bet = 0.5 + edge/2
-  // For a fair coin with edge: p = (1 + edge) / 2... actually
-  // House edge e means: EV per unit bet = -|e|
-  // So p - q = -|e|, p + q = 1 => p = (1 - |e|) / 2, q = (1 + |e|) / 2
   const absEdge = Math.abs(edge);
   const p = (1 - absEdge) / 2;
   const q = (1 + absEdge) / 2;
-
-  // Number of steps from start and to target
-  const stepsFromZero = B / k;
-  const stepsTotal = T / k;
-
-  // If B or T not divisible by k, we need to handle — use nearest
-  const n = Math.round(stepsFromZero);
-  const N = Math.round(stepsTotal);
-
+  const n = Math.round(B / k);
+  const N = Math.round(T / k);
   if (n <= 0) return 0;
   if (n >= N) return 1;
-
-  // Biased game: P(reach T | start B) = (1 - (q/p)^n) / (1 - (q/p)^N)
-  const r = q / p; // > 1 for subfair
-
-  // For large N, (q/p)^N can overflow. Use log-space.
+  const r = q / p;
   const logR = Math.log(r);
-
-  if (logR * N > 700) {
-    // (q/p)^N is effectively infinity
-    // P ≈ 1 - r^n ≈ ... actually P → 0 for large N if r > 1
-    // More precisely: P = (1 - r^n) / (1 - r^N)
-    // When r^N >> r^n >> 1: P ≈ r^n / r^N = r^(n-N)
-    return Math.exp(logR * (n - N));
-  }
-
+  if (logR * N > 700) return Math.exp(logR * (n - N));
   const rN = Math.exp(logR * n);
   const rT = Math.exp(logR * N);
   return (1 - rN) / (1 - rT);
 }
 
 // ============================================================
-// Monte Carlo engine (runs in main thread with chunking)
+// Web Worker for Monte Carlo (Blob URL — no external file)
 // ============================================================
-function monteCarloSingle(B, T, edge, k, N) {
+const workerCode = `
+self.onmessage = function(e) {
+  const { B, T, edge, betSizes, trialsPerBet, jobId } = e.data;
   const absEdge = Math.abs(edge);
   const p = (1 - absEdge) / 2;
-  let wins = 0;
-  let totalBets = 0;
-  const betCounts = [];
+  const results = [];
 
-  for (let i = 0; i < N; i++) {
-    let bankroll = B;
-    let bets = 0;
-    while (bankroll > 0 && bankroll < T) {
-      const bet = Math.min(k, bankroll, T - bankroll);
-      bets++;
-      if (Math.random() < p) {
-        bankroll += bet;
-      } else {
-        bankroll -= bet;
+  for (let si = 0; si < betSizes.length; si++) {
+    const k = betSizes[si];
+    const N = trialsPerBet[si];
+    let wins = 0;
+    let totalBets = 0;
+    const betCounts = new Float64Array(N);
+
+    for (let i = 0; i < N; i++) {
+      let bankroll = B;
+      let bets = 0;
+      while (bankroll > 0 && bankroll < T) {
+        const bet = Math.min(k, bankroll, T - bankroll);
+        bets++;
+        if (Math.random() < p) {
+          bankroll += bet;
+        } else {
+          bankroll -= bet;
+        }
+      }
+      totalBets += bets;
+      betCounts[i] = bets;
+      if (bankroll >= T) wins++;
+
+      // Progress every 500 trials
+      if (i % 500 === 0) {
+        self.postMessage({ type: 'progress', jobId, betIndex: si, trial: i, totalTrials: N, totalBets: betSizes.length });
       }
     }
-    totalBets += bets;
-    betCounts.push(bets);
-    if (bankroll >= T) wins++;
+
+    betCounts.sort();
+    results.push({
+      betSize: k,
+      prob: wins / N,
+      avgBets: totalBets / N,
+      medianBets: betCounts[Math.floor(N / 2)],
+      trialsRun: N
+    });
+
+    self.postMessage({ type: 'progress', jobId, betIndex: si, trial: N, totalTrials: N, totalBets: betSizes.length, done: true });
   }
 
-  betCounts.sort((a, b) => a - b);
-  const median = betCounts[Math.floor(N / 2)];
+  self.postMessage({ type: 'result', jobId, results });
+};
+`;
 
-  return {
-    prob: wins / N,
-    avgBets: totalBets / N,
-    medianBets: median
-  };
+const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+const workerUrl = URL.createObjectURL(workerBlob);
+let activeWorker = null;
+let activeJobId = 0;
+
+function cancelSimulation() {
+  if (activeWorker) {
+    activeWorker.terminate();
+    activeWorker = null;
+    activeJobId++;
+    setRunning(false);
+    document.getElementById('status').textContent = 'Cancelled.';
+  }
+}
+
+function setRunning(on) {
+  document.getElementById('runBtn').disabled = on;
+  document.getElementById('demoBtn').disabled = on;
+  document.getElementById('cancelBtn').style.display = on ? '' : 'none';
+}
+
+// Estimate expected steps per trial for a given bet size (biased random walk)
+// E[steps] = n(N-n) for fair game; for biased: E[steps] = (n - N*P) / (q - p)
+// where P = closed-form probability. Simplified: use n*(N-n) as upper bound.
+function estimateSteps(B, T, k) {
+  const n = Math.round(B / k);
+  const N = Math.round(T / k);
+  return n * (N - n);
+}
+
+// Auto-scale trials: cap total work at ~500M steps to stay under ~5s in worker
+const MAX_TOTAL_WORK = 500_000_000;
+
+function autoScaleTrials(B, T, betSizes, requestedN) {
+  return betSizes.map(k => {
+    const stepsPerTrial = estimateSteps(B, T, k);
+    if (stepsPerTrial <= 0) return requestedN;
+    const maxTrials = Math.max(500, Math.floor(MAX_TOTAL_WORK / stepsPerTrial));
+    return Math.min(requestedN, maxTrials);
+  });
+}
+
+function runMC(B, T, edge, betSizes, trialsPerBet) {
+  return new Promise((resolve, reject) => {
+    const jobId = ++activeJobId;
+    const worker = new Worker(workerUrl);
+    activeWorker = worker;
+
+    worker.onmessage = function (e) {
+      const msg = e.data;
+      if (msg.jobId !== jobId) return;
+      if (msg.type === 'progress') {
+        const status = document.getElementById('status');
+        const betLabel = formatMoney(betSizes[msg.betIndex]);
+        const pct = ((msg.trial / msg.totalTrials) * 100).toFixed(0);
+        const scaledNote = trialsPerBet[msg.betIndex] < parseInt(document.getElementById('trials').value)
+          ? ` (auto-scaled to ${trialsPerBet[msg.betIndex].toLocaleString()})` : '';
+        status.innerHTML = `<span class="spinner"></span> MC: ${betLabel} — ${pct}% (${msg.betIndex + 1}/${msg.totalBets})${scaledNote}`;
+      }
+      if (msg.type === 'result') {
+        activeWorker = null;
+        resolve(msg.results);
+      }
+    };
+    worker.onerror = function (err) {
+      activeWorker = null;
+      reject(err);
+    };
+
+    worker.postMessage({ B, T, edge, betSizes, trialsPerBet, jobId });
+  });
 }
 
 // ============================================================
@@ -464,17 +558,15 @@ function renderChart(betSizes, closedFormPs, mcPs) {
 
   if (mainChart) mainChart.destroy();
 
-  // Build a dense closed-form curve
   const minBet = Math.min(...betSizes);
   const maxBet = Math.max(...betSizes);
   const B = parseNum(document.getElementById('bankroll').value);
   const T = parseNum(document.getElementById('target').value);
   const edge = parseFloat(document.getElementById('edge').value) / 100;
-  const curvePoints = 200;
   const curveLabels = [];
   const curveData = [];
-  for (let i = 0; i <= curvePoints; i++) {
-    const k = minBet + (maxBet - minBet) * (i / curvePoints);
+  for (let i = 0; i <= 200; i++) {
+    const k = minBet + (maxBet - minBet) * (i / 200);
     curveLabels.push(k);
     curveData.push(closedFormP(B, T, edge, k) * 100);
   }
@@ -489,29 +581,21 @@ function renderChart(betSizes, closedFormPs, mcPs) {
           data: curveData,
           borderColor: '#6c8cff',
           backgroundColor: 'rgba(108,140,255,0.1)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 0,
-          borderWidth: 2,
+          fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2,
         },
         {
           label: 'Monte Carlo P(reach T)',
           data: betSizes.map((k, i) => ({ x: k, y: mcPs[i] * 100 })),
           type: 'scatter',
-          backgroundColor: '#ff6c8c',
-          borderColor: '#ff6c8c',
-          pointRadius: 6,
-          pointHoverRadius: 8,
+          backgroundColor: '#ff6c8c', borderColor: '#ff6c8c',
+          pointRadius: 6, pointHoverRadius: 8,
         },
         {
           label: 'Closed-Form (at bet sizes)',
           data: betSizes.map((k, i) => ({ x: k, y: closedFormPs[i] * 100 })),
           type: 'scatter',
-          backgroundColor: '#6c8cff',
-          borderColor: '#fff',
-          pointRadius: 5,
-          pointStyle: 'rectRot',
-          pointHoverRadius: 7,
+          backgroundColor: '#6c8cff', borderColor: '#fff',
+          pointRadius: 5, pointStyle: 'rectRot', pointHoverRadius: 7,
         }
       ]
     },
@@ -522,17 +606,13 @@ function renderChart(betSizes, closedFormPs, mcPs) {
         x: {
           type: 'linear',
           title: { display: true, text: 'Bet Size (£)', color: '#8b90a0' },
-          ticks: {
-            color: '#8b90a0',
-            callback: v => formatMoney(v)
-          },
+          ticks: { color: '#8b90a0', callback: v => formatMoney(v) },
           grid: { color: 'rgba(46,51,69,0.5)' }
         },
         y: {
           title: { display: true, text: 'P(Reach Target) %', color: '#8b90a0' },
           ticks: { color: '#8b90a0' },
-          grid: { color: 'rgba(46,51,69,0.5)' },
-          min: 0
+          grid: { color: 'rgba(46,51,69,0.5)' }, min: 0
         }
       },
       plugins: {
@@ -554,20 +634,23 @@ function renderChart(betSizes, closedFormPs, mcPs) {
   });
 }
 
-function renderSanity(betSizes, cfPs, mcPs) {
+function renderSanity(betSizes, cfPs, mcResults) {
   const section = document.getElementById('sanity-section');
   section.style.display = 'block';
   const tbody = document.getElementById('sanity-body');
   tbody.innerHTML = '';
+  const requestedN = parseInt(document.getElementById('trials').value);
   betSizes.forEach((k, i) => {
-    const delta = Math.abs(cfPs[i] - mcPs[i]);
+    const mcP = mcResults[i].prob;
+    const delta = Math.abs(cfPs[i] - mcP);
     const pct = (delta * 100).toFixed(3);
     const pass = delta < 0.01;
+    const scaled = mcResults[i].trialsRun < requestedN;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${formatMoney(k)}</td>
       <td>${(cfPs[i] * 100).toFixed(4)}%</td>
-      <td>${(mcPs[i] * 100).toFixed(4)}%</td>
+      <td>${(mcP * 100).toFixed(4)}%${scaled ? ' <span style="color:var(--yellow)" title="Trials auto-scaled to ' + mcResults[i].trialsRun.toLocaleString() + ' to prevent browser freeze">(' + mcResults[i].trialsRun.toLocaleString() + ' trials)</span>' : ''}</td>
       <td>${pct}%</td>
       <td class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL — Δ > 1%'}</td>
     `;
@@ -596,7 +679,7 @@ function renderSecondary(betSizes, mcResults) {
 }
 
 function parseNum(s) {
-  return parseInt(s.replace(/[^0-9]/g, ''), 10);
+  return parseInt(String(s).replace(/[^0-9]/g, ''), 10);
 }
 
 // ============================================================
@@ -609,12 +692,16 @@ async function runSimulation() {
   const edge = edgePct / 100;
   const N = parseInt(document.getElementById('trials').value);
   const betSizes = document.getElementById('betSizes').value
-    .split(',').map(s => parseNum(s)).filter(k => k > 0 && k <= T).sort((a, b) => a - b);
+    .split(/[,\s]+/).map(s => s.replace(/[^0-9]/g, '')).filter(Boolean).map(Number).filter(k => k > 0 && k <= T).sort((a, b) => a - b);
 
   if (B >= T) { alert('Target must be greater than bankroll.'); return; }
   if (betSizes.length === 0) { alert('Enter at least one valid bet size.'); return; }
 
-  // Step 1: Render reasoning BEFORE any computation
+  const trialsPerBet = autoScaleTrials(B, T, betSizes, N);
+  const anyScaled = trialsPerBet.some(t => t < N);
+
+  setRunning(true);
+
   renderReasoning([
     {
       title: 'STEP 1 — Model Selection',
@@ -632,47 +719,43 @@ async function runSimulation() {
     },
     {
       title: 'STEP 3 — Monte Carlo Validation',
-      claim: `N=${N.toLocaleString()} independent trials per bet size will yield estimates within ~${(1/Math.sqrt(N)*100).toFixed(2)}% of true value (1/√N).`,
+      claim: `N=${N.toLocaleString()} requested trials per bet size.${anyScaled ? ' Some bet sizes auto-scaled down to prevent browser freeze (small bets = millions of steps per trial).' : ''} Estimates within ~1/√N of true value.`,
       source: 'Ethier & Tavaré (1983) for negative-EV generalization. [Ref 3]',
-      assumption: 'Pseudorandom generator (Math.random) is sufficient; no cryptographic randomness required for statistical validation.',
+      assumption: 'Runs in Web Worker thread — UI stays responsive. Pseudorandom generator sufficient for validation.',
       next: 'comparison and visualization.'
     }
   ]);
 
-  // Step 2: Closed-form
   const cfPs = betSizes.map(k => closedFormP(B, T, edge, k));
 
-  // Step 3: Monte Carlo (async-chunked to keep UI responsive)
   const status = document.getElementById('status');
-  status.innerHTML = '<span class="spinner"></span> Running Monte Carlo...';
+  status.innerHTML = '<span class="spinner"></span> Running Monte Carlo in background worker...';
 
-  const mcResults = [];
-  for (let i = 0; i < betSizes.length; i++) {
-    status.innerHTML = `<span class="spinner"></span> Monte Carlo: bet size ${formatMoney(betSizes[i])} (${i + 1}/${betSizes.length})...`;
-    await new Promise(resolve => setTimeout(resolve, 10)); // yield to UI
-    mcResults.push(monteCarloSingle(B, T, edge, betSizes[i], N));
-  }
+  try {
+    const mcResults = await runMC(B, T, edge, betSizes, trialsPerBet);
+    const mcPs = mcResults.map(r => r.prob);
+    status.textContent = 'Simulation complete.';
+    setRunning(false);
 
-  const mcPs = mcResults.map(r => r.prob);
-  status.textContent = 'Simulation complete.';
+    renderChart(betSizes, cfPs, mcPs);
+    renderSanity(betSizes, cfPs, mcResults);
+    renderSecondary(betSizes, mcResults);
 
-  // Step 4: Render outputs
-  renderChart(betSizes, cfPs, mcPs);
-  renderSanity(betSizes, cfPs, mcPs);
-  renderSecondary(betSizes, mcResults);
-
-  // Crossover check
-  const crossoverNote = document.getElementById('crossover-note');
-  let crossoverFound = false;
-  for (let i = 1; i < cfPs.length; i++) {
-    if (cfPs[i] < cfPs[i - 1]) {
-      crossoverNote.innerHTML = `<div class="crossover-note">⚠ Crossover detected: P(reach T) decreases from ${formatMoney(betSizes[i-1])} to ${formatMoney(betSizes[i])}. This may occur when bet size does not evenly divide bankroll/target.</div>`;
-      crossoverFound = true;
-      break;
+    const crossoverNote = document.getElementById('crossover-note');
+    let crossoverFound = false;
+    for (let i = 1; i < cfPs.length; i++) {
+      if (cfPs[i] < cfPs[i - 1]) {
+        crossoverNote.innerHTML = `<div class="crossover-note">Crossover detected: P(reach T) decreases from ${formatMoney(betSizes[i-1])} to ${formatMoney(betSizes[i])}. This may occur when bet size does not evenly divide bankroll/target.</div>`;
+        crossoverFound = true;
+        break;
+      }
     }
-  }
-  if (!crossoverFound) {
-    crossoverNote.innerHTML = `<div class="crossover-note">No crossover found — P(reach T) is monotonically non-decreasing with bet size, confirming bold play dominance for target-reaching in subfair games.</div>`;
+    if (!crossoverFound) {
+      crossoverNote.innerHTML = `<div class="crossover-note">No crossover found — P(reach T) is monotonically non-decreasing with bet size, confirming bold play dominance for target-reaching in subfair games.</div>`;
+    }
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    setRunning(false);
   }
 }
 
@@ -680,63 +763,69 @@ async function runSimulation() {
 // Dubins-Savage demonstration
 // ============================================================
 async function runDubinsSavageDemo() {
-  const B = 10000000;   // £10M
-  const T = 100000000;  // £100M
-  const edge = -0.005;  // -0.5%
+  const B = 10000000;
+  const T = 100000000;
+  const edge = -0.005;
   const N = parseInt(document.getElementById('trials').value) || 50000;
+  const betSizes = [25000, 100000];
+  const trialsPerBet = autoScaleTrials(B, T, betSizes, N);
 
   const section = document.getElementById('demo-section');
   section.style.display = 'block';
   const results = document.getElementById('demo-results');
-  const status = document.getElementById('status');
 
-  // Reasoning first
+  setRunning(true);
+
   renderReasoning([
     {
       title: 'DUBINS-SAVAGE DEMONSTRATION — Setup',
       claim: 'A player with fewer, bolder bets has a higher probability of reaching target than one with many, timid bets — even though intuition suggests "more chances = better odds."',
       source: 'Dubins & Savage (1965), core theorem. [Ref 1]',
-      assumption: `B=£10M, T=£100M, edge=−0.5%. Comparing 400×£25k (timid) vs 100×£100k (bold). Note: these are not fixed-attempt-count strategies — the player continues until ruin or target. The "400 attempts" framing is the intuitive but incorrect reasoning.`,
+      assumption: `B=£10M, T=£100M, edge=−0.5%. Comparing £25k (timid, ${trialsPerBet[0].toLocaleString()} trials) vs £100k (bold, ${trialsPerBet[1].toLocaleString()} trials).`,
       next: 'run both strategies and compare.'
     }
   ]);
 
-  status.innerHTML = '<span class="spinner"></span> Running Dubins-Savage demo (timid: £25k)...';
-  await new Promise(r => setTimeout(r, 10));
-  const timid = monteCarloSingle(B, T, edge, 25000, N);
+  const status = document.getElementById('status');
+  status.innerHTML = '<span class="spinner"></span> Running Dubins-Savage demo in worker...';
 
-  status.innerHTML = '<span class="spinner"></span> Running Dubins-Savage demo (bold: £100k)...';
-  await new Promise(r => setTimeout(r, 10));
-  const bold = monteCarloSingle(B, T, edge, 100000, N);
+  try {
+    const mcResults = await runMC(B, T, edge, betSizes, trialsPerBet);
+    const timid = mcResults[0];
+    const bold = mcResults[1];
+    const cfTimid = closedFormP(B, T, edge, 25000);
+    const cfBold = closedFormP(B, T, edge, 100000);
 
-  const cfTimid = closedFormP(B, T, edge, 25000);
-  const cfBold = closedFormP(B, T, edge, 100000);
+    status.textContent = 'Demo complete.';
+    setRunning(false);
 
-  status.textContent = 'Demo complete.';
-
-  const boldWins = cfBold > cfTimid;
-  results.innerHTML = `
-    <div style="margin-bottom:0.8rem;">
-      <strong>Strategy A — Timid (£25k bets):</strong><br>
-      <span class="${boldWins ? 'loser' : 'winner'}">
-        Closed-form: ${(cfTimid * 100).toFixed(6)}% &nbsp;|&nbsp; MC (${N.toLocaleString()} trials): ${(timid.prob * 100).toFixed(4)}%<br>
-        Avg bets to resolution: ${timid.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}
-      </span>
-    </div>
-    <div style="margin-bottom:0.8rem;">
-      <strong>Strategy B — Bold (£100k bets):</strong><br>
-      <span class="${boldWins ? 'winner' : 'loser'}">
-        Closed-form: ${(cfBold * 100).toFixed(6)}% &nbsp;|&nbsp; MC (${N.toLocaleString()} trials): ${(bold.prob * 100).toFixed(4)}%<br>
-        Avg bets to resolution: ${bold.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}
-      </span>
-    </div>
-    <div style="color:var(--green);font-weight:700;">
-      ${boldWins
-        ? `Bold play (£100k) wins with ${(cfBold/cfTimid).toFixed(2)}× the probability of reaching target — despite intuitively having "fewer chances." This is the Dubins-Savage theorem in action.`
-        : `Unexpectedly, timid play appears to dominate — check parameters.`
-      }
-    </div>
-  `;
+    const boldWins = cfBold > cfTimid;
+    results.innerHTML = `
+      <div style="margin-bottom:0.8rem;">
+        <strong>Strategy A — Timid (£25k bets):</strong><br>
+        <span class="${boldWins ? 'loser' : 'winner'}">
+          Closed-form: ${(cfTimid * 100).toFixed(6)}% &nbsp;|&nbsp; MC (${timid.trialsRun.toLocaleString()} trials): ${(timid.prob * 100).toFixed(4)}%<br>
+          Avg bets to resolution: ${timid.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}
+        </span>
+      </div>
+      <div style="margin-bottom:0.8rem;">
+        <strong>Strategy B — Bold (£100k bets):</strong><br>
+        <span class="${boldWins ? 'winner' : 'loser'}">
+          Closed-form: ${(cfBold * 100).toFixed(6)}% &nbsp;|&nbsp; MC (${bold.trialsRun.toLocaleString()} trials): ${(bold.prob * 100).toFixed(4)}%<br>
+          Avg bets to resolution: ${bold.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}
+        </span>
+      </div>
+      <div style="color:var(--green);font-weight:700;">
+        ${boldWins
+          ? `Bold play (£100k) wins with ${(cfBold/cfTimid).toFixed(2)}x the probability of reaching target — despite intuitively having "fewer chances." This is the Dubins-Savage theorem in action.`
+          : `Unexpectedly, timid play appears to dominate — check parameters.`
+        }
+      </div>
+    `;
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    setRunning(false);
+  }
 }
 </script>
 </body>
