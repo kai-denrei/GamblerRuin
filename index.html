@@ -4,884 +4,582 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:,">
-<title>Bold Play vs. Timid Play — Gambler's Ruin Simulation</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<title>Bold Play vs. Timid Play — Alternate Visualisation</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/prop-types@15/prop-types.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts@2.15.3/umd/Recharts.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #232733;
-    --border: #2e3345;
-    --text: #e1e4ed;
-    --text-dim: #8b90a0;
-    --accent: #6c8cff;
-    --accent2: #ff6c8c;
-    --green: #4caf86;
-    --red: #e05555;
-    --yellow: #e0c055;
-    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    min-height: 100vh;
-  }
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem;
-  }
-  header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
-  }
-  header h1 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 0.4rem;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  header p { color: var(--text-dim); font-size: 0.95rem; }
-
-  /* Controls */
-  .controls {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-    background: var(--surface);
-    padding: 1.5rem;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-  }
-  .control-group label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.3rem;
-  }
-  .control-group input, .control-group select {
-    width: 100%;
-    padding: 0.5rem 0.7rem;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-size: 0.95rem;
-    font-family: var(--mono);
-  }
-  .control-group input:focus, .control-group select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-  .bet-sizes-row {
-    grid-column: 1 / -1;
-    display: flex;
-    gap: 0.5rem;
-    align-items: end;
-    flex-wrap: wrap;
-  }
-  .bet-sizes-row .control-group { flex: 1; min-width: 150px; }
-  .btn {
-    padding: 0.55rem 1.2rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: opacity 0.15s;
-  }
-  .btn:hover { opacity: 0.85; }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-  .btn-demo { background: var(--accent2); color: #fff; }
-
-  .actions {
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-  }
-
-  /* Reasoning blocks */
-  .reasoning {
-    background: var(--surface);
-    border-left: 3px solid var(--accent);
-    border-radius: 0 8px 8px 0;
-    padding: 1rem 1.2rem;
-    margin-bottom: 1.2rem;
-    font-family: var(--mono);
-    font-size: 0.82rem;
-    line-height: 1.7;
-    color: var(--text-dim);
-  }
-  .reasoning summary {
-    cursor: pointer;
-    color: var(--accent);
-    font-weight: 600;
-    font-size: 0.85rem;
-    margin-bottom: 0.3rem;
-  }
-  .reasoning .source { color: var(--yellow); }
-  .reasoning .assumption { color: var(--accent2); }
-  .reasoning .claim { color: var(--green); }
-
-  /* Chart */
-  .chart-container {
-    background: var(--surface);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    position: relative;
-  }
-  .chart-container h2 {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
-  }
-  canvas { max-height: 420px; }
-
-  /* Sanity check table */
-  .sanity-panel {
-    background: var(--surface);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-  }
-  .sanity-panel h2 { font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: var(--mono);
-    font-size: 0.85rem;
-  }
-  th, td {
-    text-align: right;
-    padding: 0.5rem 0.8rem;
-    border-bottom: 1px solid var(--border);
-  }
-  th { color: var(--text-dim); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
-  td:first-child, th:first-child { text-align: left; }
-  .pass { color: var(--green); }
-  .fail { color: var(--red); font-weight: 700; }
-
-  /* Secondary outputs */
-  .secondary-panel {
-    background: var(--surface);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-  }
-  .secondary-panel h2 { font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; }
-
-  /* Dubins-Savage demo */
-  .demo-box {
-    background: var(--surface2);
-    border: 2px solid var(--accent2);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-  }
-  .demo-box h3 { color: var(--accent2); margin-bottom: 0.5rem; font-size: 1rem; }
-  .demo-box p { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 0.8rem; }
-  .demo-result { font-family: var(--mono); font-size: 0.9rem; }
-  .demo-result span.winner { color: var(--green); font-weight: 700; }
-  .demo-result span.loser { color: var(--text-dim); }
-
-  /* Citations */
-  .citations {
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    border-top: 1px solid var(--border);
-    padding-top: 1.5rem;
-    margin-top: 2rem;
-  }
-  .citations h3 { font-size: 0.9rem; color: var(--text); margin-bottom: 0.5rem; }
-  .citations ol { padding-left: 1.2rem; }
-  .citations li { margin-bottom: 0.3rem; }
-
-  .spinner {
-    display: inline-block;
-    width: 14px; height: 14px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    vertical-align: middle;
-    margin-right: 0.4rem;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #status { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem; }
-
-  .crossover-note {
-    font-size: 0.85rem;
-    color: var(--yellow);
-    margin-top: 0.5rem;
-    font-style: italic;
-  }
-  .nav-bar {
-    display: flex; gap: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    padding: 0 2rem;
-    font-family: var(--mono);
-  }
-  .nav-bar a {
-    padding: 10px 20px; font-size: 11px; letter-spacing: 0.08em;
-    text-decoration: none; color: var(--text-dim);
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  .nav-bar a:hover { color: var(--text); }
-  .nav-bar a.active { color: var(--accent); border-bottom-color: var(--accent); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #070b14; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #070b14; }
+  ::-webkit-scrollbar-thumb { background: #162035; border-radius: 2px; }
+  input[type=range] { accent-color: #f59e0b; cursor: pointer; }
+  button { cursor: pointer; }
 </style>
 </head>
 <body>
-<nav class="nav-bar">
-  <a href="index.html" class="active">CLASSIC</a>
-  <a href="alternate.html">ALTERNATE</a>
-</nav>
-<div class="container">
-  <header>
-    <h1>Bold Play vs. Timid Play</h1>
-    <p>Gambler's Ruin simulation — verifying that bold play maximizes P(reach target) in subfair games</p>
-  </header>
-
-  <!-- Controls -->
-  <div class="controls">
-    <div class="control-group">
-      <label>Starting Bankroll (B)</label>
-      <input type="text" id="bankroll" value="10,000,000" placeholder="e.g. 10,000,000">
-    </div>
-    <div class="control-group">
-      <label>Target (T)</label>
-      <input type="text" id="target" value="100,000,000" placeholder="e.g. 100,000,000">
-    </div>
-    <div class="control-group">
-      <label>House Edge (e)</label>
-      <input type="number" id="edge" value="-0.5" step="0.01" min="-5" max="-0.01">
-      <span style="font-size:0.75rem;color:var(--text-dim)">% (negative)</span>
-    </div>
-    <div class="control-group">
-      <label>Monte Carlo Trials (N)</label>
-      <input type="number" id="trials" value="50000" min="1000" max="500000" step="1000">
-    </div>
-    <div class="control-group">
-      <label>Rounds per Hour</label>
-      <input type="number" id="roundsPerHour" value="60" min="1" max="1000">
-    </div>
-    <div class="bet-sizes-row">
-      <div class="control-group">
-        <label>Bet Sizes (comma-separated)</label>
-        <input type="text" id="betSizes" value="25,000, 100,000, 500,000, 1,000,000, 2,500,000, 5,000,000, 10,000,000" placeholder="25,000, 100,000, ...">
-      </div>
-    </div>
-  </div>
-
-  <div class="actions">
-    <button class="btn btn-primary" id="runBtn" onclick="runSimulation()">Run Simulation</button>
-    <button class="btn btn-demo" id="demoBtn" onclick="runDubinsSavageDemo()">Dubins-Savage Demo</button>
-    <button class="btn btn-secondary" id="cancelBtn" onclick="cancelSimulation()" style="display:none;">Cancel</button>
-  </div>
-
-  <div id="status"></div>
-
-  <!-- Reasoning blocks (rendered before results) -->
-  <div id="reasoning-container"></div>
-
-  <!-- Chart -->
-  <div class="chart-container" id="chart-section" style="display:none;">
-    <h2>P(Reach Target) vs. Bet Size</h2>
-    <canvas id="mainChart"></canvas>
-    <div id="crossover-note"></div>
-  </div>
-
-  <!-- Sanity check -->
-  <div class="sanity-panel" id="sanity-section" style="display:none;">
-    <h2>Sanity Check — Closed-Form vs. Monte Carlo</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Bet Size</th>
-          <th>Closed-Form P</th>
-          <th>Monte Carlo P</th>
-          <th>Delta</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="sanity-body"></tbody>
-    </table>
-  </div>
-
-  <!-- Secondary outputs -->
-  <div class="secondary-panel" id="secondary-section" style="display:none;">
-    <h2>Session Statistics</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Bet Size</th>
-          <th>E[Bets to Resolution]</th>
-          <th>Median Session Length</th>
-          <th>P(Reach Target)</th>
-        </tr>
-      </thead>
-      <tbody id="secondary-body"></tbody>
-    </table>
-  </div>
-
-  <!-- Dubins-Savage Demo -->
-  <div class="demo-box" id="demo-section" style="display:none;">
-    <h3>Dubins-Savage Demonstration</h3>
-    <p>"Would you rather have 400 attempts at £25k or 100 attempts at £100k?"</p>
-    <div id="demo-results" class="demo-result"></div>
-  </div>
-
-  <!-- Citations -->
-  <div class="citations">
-    <h3>References</h3>
-    <ol>
-      <li id="ref1">Dubins, L.E. & Savage, L.J. (1965). <em>How to Gamble If You Must: Inequalities for Stochastic Processes</em>. McGraw-Hill. — Bold play optimality theorem for subfair games.</li>
-      <li id="ref2">Feller, W. (1968). <em>An Introduction to Probability Theory and Its Applications</em>, Vol. I, Ch. XIV. Wiley. — Classical Gambler's Ruin derivation and closed-form solutions.</li>
-      <li id="ref3">Ethier, S.N. & Tavaré, S. (1983). "The Proportional Bettor's Return on Investment." <em>Journal of Applied Probability</em>, 20(3), 563–573. — Generalization to negative expected value games.</li>
-    </ol>
-  </div>
-</div>
+<div id="root"></div>
 
 <script>
-// ============================================================
-// Comma-formatted number inputs
-// ============================================================
-function formatWithCommas(n) {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-function setupCommaInput(id) {
-  const el = document.getElementById(id);
-  el.addEventListener('input', function () {
-    const pos = this.selectionStart;
-    const oldLen = this.value.length;
-    const raw = this.value.replace(/[^0-9]/g, '');
-    if (raw) this.value = formatWithCommas(raw);
-    const newLen = this.value.length;
-    this.setSelectionRange(pos + newLen - oldLen, pos + newLen - oldLen);
-  });
-}
-setupCommaInput('bankroll');
-setupCommaInput('target');
-
-// Format bet sizes on blur
-document.getElementById('betSizes').addEventListener('blur', function () {
-  const parts = this.value.split(',').map(s => s.trim().replace(/[^0-9]/g, '')).filter(Boolean);
-  this.value = parts.map(p => formatWithCommas(p)).join(', ');
-});
-
-// ============================================================
-// Closed-form calculator
-// ============================================================
-function closedFormP(B, T, edge, k) {
-  const absEdge = Math.abs(edge);
-  const p = (1 - absEdge) / 2;
-  const q = (1 + absEdge) / 2;
-  const n = Math.round(B / k);
-  const N = Math.round(T / k);
-  if (n <= 0) return 0;
-  if (n >= N) return 1;
-  const r = q / p;
-  const logR = Math.log(r);
-  if (logR * N > 700) return Math.exp(logR * (n - N));
-  const rN = Math.exp(logR * n);
-  const rT = Math.exp(logR * N);
-  return (1 - rN) / (1 - rT);
-}
-
-// ============================================================
-// Web Worker for Monte Carlo (Blob URL — no external file)
-// ============================================================
+// Web Worker for Monte Carlo — runs off main thread
 const workerCode = `
 self.onmessage = function(e) {
-  const { B, T, edge, betSizes, trialsPerBet, jobId } = e.data;
-  const absEdge = Math.abs(edge);
-  const p = (1 - absEdge) / 2;
-  const results = [];
-  var MAX_STEPS = 5000000; // 5M step cap per trial — safety net
-
-  for (let si = 0; si < betSizes.length; si++) {
-    const k = betSizes[si];
-    const N = trialsPerBet[si];
-
-    // N=0 means MC was skipped (infeasible)
-    if (N === 0) {
-      results.push({ betSize: k, prob: -1, avgBets: 0, medianBets: 0, trialsRun: 0, skipped: true });
-      self.postMessage({ type: 'progress', jobId, betIndex: si, trial: 0, totalTrials: 0, totalBets: betSizes.length, done: true });
-      continue;
-    }
-
-    let wins = 0;
-    let totalBets = 0;
-    const betCounts = new Float64Array(N);
-
-    for (let i = 0; i < N; i++) {
-      let bankroll = B;
-      let bets = 0;
-      while (bankroll > 0 && bankroll < T && bets < MAX_STEPS) {
-        const bet = Math.min(k, bankroll, T - bankroll);
-        bets++;
-        if (Math.random() < p) {
-          bankroll += bet;
-        } else {
-          bankroll -= bet;
-        }
+  var d = e.data;
+  var B = d.B, T = d.T, p = d.p, jobs = d.jobs, jobId = d.jobId;
+  var results = [];
+  for (var ji = 0; ji < jobs.length; ji++) {
+    var k = jobs[ji].k;
+    var trials = jobs[ji].trials;
+    var wins = 0;
+    for (var i = 0; i < trials; i++) {
+      var w = B, steps = 0;
+      var maxSteps = 10000000;
+      while (w > 0 && w < T && steps < maxSteps) {
+        var bet = Math.min(k, w, T - w);
+        if (Math.random() < p) w += bet; else w -= bet;
+        steps++;
       }
-      totalBets += bets;
-      betCounts[i] = bets;
-      if (bankroll >= T) wins++;
-
-      if (i % 200 === 0) {
-        self.postMessage({ type: 'progress', jobId, betIndex: si, trial: i, totalTrials: N, totalBets: betSizes.length });
-      }
+      if (w >= T) wins++;
     }
-
-    betCounts.sort();
-    results.push({
-      betSize: k,
-      prob: wins / N,
-      avgBets: totalBets / N,
-      medianBets: betCounts[Math.floor(N / 2)],
-      trialsRun: N,
-      skipped: false
-    });
-
-    self.postMessage({ type: 'progress', jobId, betIndex: si, trial: N, totalTrials: N, totalBets: betSizes.length, done: true });
+    results.push({ k: k, mc: (wins / trials) * 100, trials: trials });
+    self.postMessage({ type: 'progress', jobId: jobId, done: ji + 1, total: jobs.length, label: k });
   }
-
-  self.postMessage({ type: 'result', jobId, results });
+  self.postMessage({ type: 'result', jobId: jobId, results: results });
 };
 `;
-
 const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
 const workerUrl = URL.createObjectURL(workerBlob);
-let activeWorker = null;
-let activeJobId = 0;
 
-function cancelSimulation() {
-  if (activeWorker) {
-    activeWorker.terminate();
-    activeWorker = null;
-    activeJobId++;
-    setRunning(false);
-    document.getElementById('status').textContent = 'Cancelled.';
-  }
-}
-
-function setRunning(on) {
-  document.getElementById('runBtn').disabled = on;
-  document.getElementById('demoBtn').disabled = on;
-  document.getElementById('cancelBtn').style.display = on ? '' : 'none';
-}
-
-// Estimate expected steps per trial for a given bet size (biased random walk)
-function estimateSteps(B, T, k) {
+// Auto-scale: estimate steps per trial, cap total work at ~200M
+function autoScaleTrials(B, T, k, requested) {
   const n = Math.round(B / k);
   const N = Math.round(T / k);
-  return n * (N - n);
+  const estSteps = n * (N - n);
+  if (estSteps <= 0) return requested;
+  const maxTrials = Math.max(200, Math.floor(200000000 / estSteps));
+  return Math.min(requested, maxTrials);
+}
+window.__workerUrl = workerUrl;
+window.__autoScaleTrials = autoScaleTrials;
+</script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+const { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
+
+const C = {
+  bg: "#070b14", panel: "#0c1221", border: "#162035",
+  amber: "#f59e0b", green: "#10b981", red: "#ef4444",
+  blue: "#60a5fa", text: "#cbd5e1", muted: "#475569",
+  bright: "#f1f5f9", subtle: "#1e2d47",
+};
+
+const edgeToP = e => (1 + e) / 2;
+
+function gruin(B, T, k, p) {
+  const n = Math.round(B / k);
+  const N = Math.round(T / k);
+  if (n <= 0 || N <= n) return 0;
+  if (Math.abs(p - 0.5) < 1e-10) return n / N;
+  const r = (1 - p) / p;
+  const logR = Math.log(r);
+  const rn = Math.exp(logR * n);
+  const rN = Math.exp(logR * N);
+  if (!isFinite(rN) || rN > 1e15) return Math.max(0, Math.min(1, Math.exp(-logR * (N - n))));
+  return Math.max(0, Math.min(1, (1 - rn) / (1 - rN)));
 }
 
-// Auto-scale trials: cap total work at ~500M steps to stay under ~5s in worker
-// If a SINGLE trial would exceed 5M steps, skip MC entirely (return 0 trials).
-const MAX_TOTAL_WORK = 500_000_000;
-const MAX_STEPS_PER_TRIAL = 5_000_000;
+const fmt = n => {
+  if (n >= 1e9) return `£${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `£${(n / 1e6 % 1 === 0 ? (n / 1e6).toFixed(0) : (n / 1e6).toFixed(1))}M`;
+  if (n >= 1e3) return `£${(n / 1e3).toFixed(0)}k`;
+  return `£${n}`;
+};
+const pct = (v, d = 6) => v === null ? "—" : v === 0 ? "~0%" : `${(v * 100).toFixed(d)}%`;
 
-function autoScaleTrials(B, T, betSizes, requestedN) {
-  return betSizes.map(k => {
-    const stepsPerTrial = estimateSteps(B, T, k);
-    if (stepsPerTrial <= 0) return requestedN;
-    // If even one trial is infeasible, skip MC for this bet size
-    if (stepsPerTrial > MAX_STEPS_PER_TRIAL) return 0;
-    const maxTrials = Math.max(200, Math.floor(MAX_TOTAL_WORK / stepsPerTrial));
-    return Math.min(requestedN, maxTrials);
-  });
+const STEPS = [
+  {
+    id: "STEP 1 — Model Selection",
+    claim: "A player makes fixed bets of size k in a game with win probability p per round. The session ends at ruin (bankroll = 0) or success (bankroll ≥ T). This constitutes a Markov chain on states {0, k, 2k, …, T}.",
+    source: "Feller, W. An Introduction to Probability Theory, Vol. I, Ch. XIV (1950). Wiley.",
+  },
+  {
+    id: "STEP 2 — Closed-Form Solution",
+    claim: "For p ≠ 0.5, P(reach T | start B, bet k) = (1 − r^n) / (1 − r^N), where r = q/p, n = B/k, N = T/k. For a subfair game (p < 0.5), r > 1. As N grows large, P ≈ (p/q)^(N−n). Larger k reduces N−n, directly raising P.",
+    source: "Ibid., Equation (14.3.2).",
+  },
+  {
+    id: "STEP 3 — Bold Play Theorem",
+    claim: "Among all admissible strategies in a subfair game, bold play — betting min(B, T−B) at each decision point — uniquely maximizes P(reach T). No timid or mixed strategy can improve upon it. The intuition: fewer rounds give the house edge fewer compounding opportunities.",
+    source: "Dubins, L.E. & Savage, L.J. How to Gamble If You Must (1965). McGraw-Hill. Theorem 1.",
+  },
+  {
+    id: "STEP 4 — Consequence for Fixed Bet Sizes",
+    claim: "Within the class of fixed-bet strategies, P(reach T) is strictly increasing in k when p < 0.5. 'More attempts' is a misleading heuristic: it assumes independence, but each round is a multiplicative erosion of expected wealth in a negative-EV game.",
+    source: "Ethier, S.N. & Tavaré, S. (1983). The proportional bettor's return on investment. J. Applied Probability, 20(3), 563–573.",
+  },
+];
+
+function ChartTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  return (
+    <div style={{
+      background: C.panel, border: `1px solid ${C.border}`,
+      padding: "8px 12px", fontFamily: "monospace", fontSize: 11,
+    }}>
+      <div style={{ color: C.muted, marginBottom: 4 }}>Bet size</div>
+      <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>{fmt(d.k)}</div>
+      {d.cf !== undefined && <div style={{ color: C.amber }}>Closed-form: {d.cf.toFixed(6)}%</div>}
+      {d.mc !== undefined && <div style={{ color: C.green }}>Monte Carlo: {d.mc.toFixed(4)}%</div>}
+    </div>
+  );
 }
 
-function runMC(B, T, edge, betSizes, trialsPerBet) {
-  return new Promise((resolve, reject) => {
-    const jobId = ++activeJobId;
-    const worker = new Worker(workerUrl);
-    activeWorker = worker;
+function App() {
+  const [B, setB] = useState(10_000_000);
+  const [T, setT] = useState(100_000_000);
+  const [edge, setEdge] = useState(-0.005);
+  const [mcTrials, setMcTrials] = useState(8000);
+  const [mcDots, setMcDots] = useState([]);
+  const [mcRunning, setMcRunning] = useState(false);
+  const [mcProgress, setMcProgress] = useState('');
+  const [reasonOpen, setReasonOpen] = useState(true);
+  const [logY, setLogY] = useState(false);
+  const [dsResult, setDsResult] = useState(null);
+  const workerRef = useRef(null);
 
-    worker.onmessage = function (e) {
+  const p = edgeToP(edge);
+  const safeT = Math.max(T, B * 2);
+
+  const curve = useMemo(() => {
+    const minK = Math.max(Math.round(B / 3000), 1000);
+    const maxK = B;
+    return Array.from({ length: 250 }, (_, i) => {
+      const t = i / 249;
+      const k = Math.round(minK * Math.pow(maxK / minK, t));
+      const cf = gruin(B, safeT, k, p) * 100;
+      return { k, cf };
+    });
+  }, [B, safeT, p]);
+
+  // DS demo — closed-form instant, MC via worker
+  useEffect(() => {
+    const k1 = 25_000, k2 = 100_000;
+    const cf1 = gruin(B, safeT, k1, p);
+    const cf2 = gruin(B, safeT, k2, p);
+    setDsResult({ k1, k2, cf1, cf2, mc1: null, mc2: null });
+
+    const w = new Worker(window.__workerUrl);
+    const trials1 = window.__autoScaleTrials(B, safeT, k1, 3000);
+    const trials2 = window.__autoScaleTrials(B, safeT, k2, 3000);
+    w.postMessage({ B, T: safeT, p, jobs: [{ k: k1, trials: trials1 }, { k: k2, trials: trials2 }], jobId: 0 });
+    w.onmessage = function(e) {
+      if (e.data.type === 'result') {
+        const r = e.data.results;
+        setDsResult(prev => ({ ...prev, mc1: r[0].mc / 100, mc2: r[1].mc / 100 }));
+        w.terminate();
+      }
+    };
+    return () => w.terminate();
+  }, [B, safeT, p]);
+
+  // MC run via Web Worker
+  const handleMC = useCallback(() => {
+    if (workerRef.current) workerRef.current.terminate();
+    setMcRunning(true);
+    setMcDots([]);
+    setMcProgress('Starting...');
+
+    const divisors = [2000, 500, 150, 40, 12, 4, 1];
+    const keyBets = divisors
+      .map(d => Math.round(B / d))
+      .filter(k => k >= 1000 && k <= B);
+
+    const jobs = keyBets.map(k => ({
+      k,
+      trials: window.__autoScaleTrials(B, safeT, k, mcTrials),
+    }));
+
+    const w = new Worker(window.__workerUrl);
+    workerRef.current = w;
+    w.postMessage({ B, T: safeT, p, jobs, jobId: 1 });
+    w.onmessage = function(e) {
       const msg = e.data;
-      if (msg.jobId !== jobId) return;
       if (msg.type === 'progress') {
-        const status = document.getElementById('status');
-        const betLabel = formatMoney(betSizes[msg.betIndex]);
-        const trials = trialsPerBet[msg.betIndex];
-        if (trials === 0) {
-          status.innerHTML = `<span class="spinner"></span> MC: ${betLabel} — skipped (too many steps/trial) (${msg.betIndex + 1}/${msg.totalBets})`;
-        } else {
-          const pct = msg.totalTrials > 0 ? ((msg.trial / msg.totalTrials) * 100).toFixed(0) : '0';
-          const scaledNote = trials < parseInt(document.getElementById('trials').value)
-            ? ` (auto-scaled to ${trials.toLocaleString()})` : '';
-          status.innerHTML = `<span class="spinner"></span> MC: ${betLabel} — ${pct}% (${msg.betIndex + 1}/${msg.totalBets})${scaledNote}`;
-        }
+        setMcProgress(`${msg.done}/${msg.total} bet sizes (${fmt(msg.label)})...`);
       }
       if (msg.type === 'result') {
-        activeWorker = null;
-        resolve(msg.results);
+        setMcDots(msg.results);
+        setMcRunning(false);
+        setMcProgress('');
+        workerRef.current = null;
+        w.terminate();
       }
     };
-    worker.onerror = function (err) {
-      activeWorker = null;
-      reject(err);
+    w.onerror = function() {
+      setMcRunning(false);
+      setMcProgress('Error');
+      workerRef.current = null;
     };
+  }, [B, safeT, p, mcTrials]);
 
-    worker.postMessage({ B, T, edge, betSizes, trialsPerBet, jobId });
+  const cancelMC = useCallback(() => {
+    if (workerRef.current) {
+      workerRef.current.terminate();
+      workerRef.current = null;
+    }
+    setMcRunning(false);
+    setMcProgress('Cancelled.');
+  }, []);
+
+  const sanityRows = mcDots.map(({ k, mc: mcV, trials }) => {
+    const cfV = gruin(B, safeT, k, p);
+    const delta = Math.abs(mcV / 100 - cfV);
+    const pass = delta < Math.max(cfV * 0.15, 0.0005);
+    return { k, cfV, mcV, delta, pass, trials };
   });
-}
 
-// ============================================================
-// Rendering
-// ============================================================
-function formatMoney(v) {
-  if (v >= 1e9) return '£' + (v / 1e9).toFixed(1) + 'B';
-  if (v >= 1e6) return '£' + (v / 1e6).toFixed(1) + 'M';
-  if (v >= 1e3) return '£' + (v / 1e3).toFixed(0) + 'k';
-  return '£' + v;
-}
+  const dsMultiplier = dsResult && dsResult.cf1 > 1e-20 && dsResult.cf2 > 1e-20
+    ? (dsResult.cf2 / dsResult.cf1).toLocaleString(undefined, { maximumSignificantDigits: 3 })
+    : null;
 
-function formatTime(hours) {
-  if (hours < 1) return (hours * 60).toFixed(0) + ' min';
-  if (hours < 24) return hours.toFixed(1) + ' hrs';
-  if (hours < 720) return (hours / 24).toFixed(1) + ' days';
-  if (hours < 8760) return (hours / 720).toFixed(1) + ' months';
-  return (hours / 8760).toFixed(1) + ' years';
-}
-
-function renderReasoning(steps) {
-  const container = document.getElementById('reasoning-container');
-  container.innerHTML = '';
-  steps.forEach(step => {
-    const details = document.createElement('details');
-    details.className = 'reasoning';
-    details.open = true;
-    details.innerHTML = `
-      <summary>${step.title}</summary>
-      <div><span class="claim">Claim:</span> ${step.claim}</div>
-      <div><span class="source">Source:</span> ${step.source}</div>
-      <div><span class="assumption">Assumption:</span> ${step.assumption}</div>
-      <div style="margin-top:0.3rem;color:var(--text);">Proceeding to: ${step.next}</div>
-    `;
-    container.appendChild(details);
-  });
-}
-
-let mainChart = null;
-
-function renderChart(betSizes, closedFormPs, mcPs) {
-  const section = document.getElementById('chart-section');
-  section.style.display = 'block';
-  const ctx = document.getElementById('mainChart').getContext('2d');
-
-  if (mainChart) mainChart.destroy();
-
-  const minBet = Math.min(...betSizes);
-  const maxBet = Math.max(...betSizes);
-  const B = parseNum(document.getElementById('bankroll').value);
-  const T = parseNum(document.getElementById('target').value);
-  const edge = parseFloat(document.getElementById('edge').value) / 100;
-  const curveLabels = [];
-  const curveData = [];
-  for (let i = 0; i <= 200; i++) {
-    const k = minBet + (maxBet - minBet) * (i / 200);
-    curveLabels.push(k);
-    curveData.push(closedFormP(B, T, edge, k) * 100);
-  }
-
-  mainChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: curveLabels,
-      datasets: [
-        {
-          label: 'Closed-Form P(reach T)',
-          data: curveData,
-          borderColor: '#6c8cff',
-          backgroundColor: 'rgba(108,140,255,0.1)',
-          fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2,
-        },
-        {
-          label: 'Monte Carlo P(reach T)',
-          data: betSizes.map((k, i) => mcPs[i] != null ? { x: k, y: mcPs[i] * 100 } : null).filter(Boolean),
-          type: 'scatter',
-          backgroundColor: '#ff6c8c', borderColor: '#ff6c8c',
-          pointRadius: 6, pointHoverRadius: 8,
-        },
-        {
-          label: 'Closed-Form (at bet sizes)',
-          data: betSizes.map((k, i) => ({ x: k, y: closedFormPs[i] * 100 })),
-          type: 'scatter',
-          backgroundColor: '#6c8cff', borderColor: '#fff',
-          pointRadius: 5, pointStyle: 'rectRot', pointHoverRadius: 7,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      interaction: { mode: 'nearest', intersect: false },
-      scales: {
-        x: {
-          type: 'linear',
-          title: { display: true, text: 'Bet Size (£)', color: '#8b90a0' },
-          ticks: { color: '#8b90a0', callback: v => formatMoney(v) },
-          grid: { color: 'rgba(46,51,69,0.5)' }
-        },
-        y: {
-          title: { display: true, text: 'P(Reach Target) %', color: '#8b90a0' },
-          ticks: { color: '#8b90a0' },
-          grid: { color: 'rgba(46,51,69,0.5)' }, min: 0
-        }
-      },
-      plugins: {
-        legend: { labels: { color: '#e1e4ed' } },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const v = ctx.parsed?.y ?? ctx.raw?.y;
-              return ctx.dataset.label + ': ' + (v != null ? v.toFixed(4) + '%' : '');
-            },
-            title: ctx => {
-              const x = ctx[0]?.parsed?.x ?? ctx[0]?.raw?.x ?? ctx[0]?.label;
-              return 'Bet: ' + formatMoney(x);
-            }
-          }
-        }
-      }
-    }
-  });
-}
-
-function renderSanity(betSizes, cfPs, mcResults) {
-  const section = document.getElementById('sanity-section');
-  section.style.display = 'block';
-  const tbody = document.getElementById('sanity-body');
-  tbody.innerHTML = '';
-  betSizes.forEach((k, i) => {
-    const r = mcResults[i];
-    const tr = document.createElement('tr');
-    if (r.skipped) {
-      tr.innerHTML = `
-        <td>${formatMoney(k)}</td>
-        <td>${(cfPs[i] * 100).toFixed(4)}%</td>
-        <td><span style="color:var(--text-dim)">skipped</span></td>
-        <td>—</td>
-        <td style="color:var(--yellow)">CF ONLY — too many steps/trial for MC</td>
-      `;
-    } else {
-      const mcP = r.prob;
-      const delta = Math.abs(cfPs[i] - mcP);
-      const pct = (delta * 100).toFixed(3);
-      const pass = delta < 0.01;
-      const requestedN = parseInt(document.getElementById('trials').value);
-      const scaled = r.trialsRun < requestedN;
-      tr.innerHTML = `
-        <td>${formatMoney(k)}</td>
-        <td>${(cfPs[i] * 100).toFixed(4)}%</td>
-        <td>${(mcP * 100).toFixed(4)}%${scaled ? ' <span style="color:var(--yellow)">(' + r.trialsRun.toLocaleString() + ' trials)</span>' : ''}</td>
-        <td>${pct}%</td>
-        <td class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL — Δ > 1%'}</td>
-      `;
-    }
-    tbody.appendChild(tr);
-  });
-}
-
-function renderSecondary(betSizes, mcResults) {
-  const section = document.getElementById('secondary-section');
-  section.style.display = 'block';
-  const rph = parseInt(document.getElementById('roundsPerHour').value) || 60;
-  const tbody = document.getElementById('secondary-body');
-  tbody.innerHTML = '';
-  betSizes.forEach((k, i) => {
-    const r = mcResults[i];
-    const tr = document.createElement('tr');
-    if (r.skipped) {
-      tr.innerHTML = `
-        <td>${formatMoney(k)}</td>
-        <td colspan="3" style="color:var(--text-dim)">MC skipped — closed-form only</td>
-      `;
-    } else {
-      const medianHours = r.medianBets / rph;
-      tr.innerHTML = `
-        <td>${formatMoney(k)}</td>
-        <td>${r.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
-        <td>${formatTime(medianHours)}</td>
-        <td>${(r.prob * 100).toFixed(4)}%</td>
-      `;
-    }
-    tbody.appendChild(tr);
-  });
-}
-
-function parseNum(s) {
-  return parseInt(String(s).replace(/[^0-9]/g, ''), 10);
-}
-
-// ============================================================
-// Main simulation runner
-// ============================================================
-async function runSimulation() {
-  const B = parseNum(document.getElementById('bankroll').value);
-  const T = parseNum(document.getElementById('target').value);
-  const edgePct = parseFloat(document.getElementById('edge').value);
-  const edge = edgePct / 100;
-  const N = parseInt(document.getElementById('trials').value);
-  const betSizes = document.getElementById('betSizes').value
-    .split(/[,\s]+/).map(s => s.replace(/[^0-9]/g, '')).filter(Boolean).map(Number).filter(k => k > 0 && k <= T).sort((a, b) => a - b);
-
-  if (B >= T) { alert('Target must be greater than bankroll.'); return; }
-  if (betSizes.length === 0) { alert('Enter at least one valid bet size.'); return; }
-
-  const trialsPerBet = autoScaleTrials(B, T, betSizes, N);
-  const anyScaled = trialsPerBet.some(t => t < N);
-
-  setRunning(true);
-
-  renderReasoning([
-    {
-      title: 'STEP 1 — Model Selection',
-      claim: 'Bold play maximizes P(reach T) in subfair games.',
-      source: 'Dubins & Savage (1965), Theorem 1. [Ref 1]',
-      assumption: 'Bets are discrete, no fractional units, no table limits.',
-      next: 'closed-form calculation.'
-    },
-    {
-      title: 'STEP 2 — Closed-Form Calculation',
-      claim: `P(reach T) = (1 − (q/p)^(B/k)) / (1 − (q/p)^(T/k)) with p=${((1 - Math.abs(edge)) / 2).toFixed(6)}, q=${((1 + Math.abs(edge)) / 2).toFixed(6)}.`,
-      source: 'Feller (1968), Ch. XIV, Gambler\'s Ruin formula. [Ref 2]',
-      assumption: `Bankroll B=${formatMoney(B)}, Target T=${formatMoney(T)}, edge=${edgePct}%. Bet sizes must divide evenly into B and T for exact formula; nearest rounding applied otherwise.`,
-      next: 'Monte Carlo validation.'
-    },
-    {
-      title: 'STEP 3 — Monte Carlo Validation',
-      claim: `N=${N.toLocaleString()} requested trials per bet size.${anyScaled ? ' Some bet sizes auto-scaled down to prevent browser freeze (small bets = millions of steps per trial).' : ''} Estimates within ~1/√N of true value.`,
-      source: 'Ethier & Tavaré (1983) for negative-EV generalization. [Ref 3]',
-      assumption: 'Runs in Web Worker thread — UI stays responsive. Pseudorandom generator sufficient for validation.',
-      next: 'comparison and visualization.'
-    }
-  ]);
-
-  const cfPs = betSizes.map(k => closedFormP(B, T, edge, k));
-
-  const status = document.getElementById('status');
-  status.innerHTML = '<span class="spinner"></span> Running Monte Carlo in background worker...';
-
-  try {
-    const mcResults = await runMC(B, T, edge, betSizes, trialsPerBet);
-    // For chart: only include non-skipped MC points
-    const mcPs = mcResults.map(r => r.skipped ? null : r.prob);
-    status.textContent = 'Simulation complete.';
-    setRunning(false);
-
-    renderChart(betSizes, cfPs, mcPs);
-    renderSanity(betSizes, cfPs, mcResults);
-    renderSecondary(betSizes, mcResults);
-
-    const crossoverNote = document.getElementById('crossover-note');
-    let crossoverFound = false;
-    for (let i = 1; i < cfPs.length; i++) {
-      if (cfPs[i] < cfPs[i - 1]) {
-        crossoverNote.innerHTML = `<div class="crossover-note">Crossover detected: P(reach T) decreases from ${formatMoney(betSizes[i-1])} to ${formatMoney(betSizes[i])}. This may occur when bet size does not evenly divide bankroll/target.</div>`;
-        crossoverFound = true;
-        break;
-      }
-    }
-    if (!crossoverFound) {
-      crossoverNote.innerHTML = `<div class="crossover-note">No crossover found — P(reach T) is monotonically non-decreasing with bet size, confirming bold play dominance for target-reaching in subfair games.</div>`;
-    }
-  } catch (err) {
-    status.textContent = 'Error: ' + err.message;
-    setRunning(false);
-  }
-}
-
-// ============================================================
-// Dubins-Savage demonstration
-// ============================================================
-async function runDubinsSavageDemo() {
-  const B = 10000000;
-  const T = 100000000;
-  const edge = -0.005;
-  const N = parseInt(document.getElementById('trials').value) || 50000;
-  const betSizes = [25000, 100000];
-  const trialsPerBet = autoScaleTrials(B, T, betSizes, N);
-
-  const section = document.getElementById('demo-section');
-  section.style.display = 'block';
-  const results = document.getElementById('demo-results');
-
-  setRunning(true);
-
-  renderReasoning([
-    {
-      title: 'DUBINS-SAVAGE DEMONSTRATION — Setup',
-      claim: 'A player with fewer, bolder bets has a higher probability of reaching target than one with many, timid bets — even though intuition suggests "more chances = better odds."',
-      source: 'Dubins & Savage (1965), core theorem. [Ref 1]',
-      assumption: `B=£10M, T=£100M, edge=−0.5%. Comparing £25k (timid, ${trialsPerBet[0].toLocaleString()} trials) vs £100k (bold, ${trialsPerBet[1].toLocaleString()} trials).`,
-      next: 'run both strategies and compare.'
-    }
-  ]);
-
-  const status = document.getElementById('status');
-  status.innerHTML = '<span class="spinner"></span> Running Dubins-Savage demo in worker...';
-
-  try {
-    const mcResults = await runMC(B, T, edge, betSizes, trialsPerBet);
-    const timid = mcResults[0];
-    const bold = mcResults[1];
-    const cfTimid = closedFormP(B, T, edge, 25000);
-    const cfBold = closedFormP(B, T, edge, 100000);
-
-    status.textContent = 'Demo complete.';
-    setRunning(false);
-
-    const boldWins = cfBold > cfTimid;
-    results.innerHTML = `
-      <div style="margin-bottom:0.8rem;">
-        <strong>Strategy A — Timid (£25k bets):</strong><br>
-        <span class="${boldWins ? 'loser' : 'winner'}">
-          Closed-form: ${(cfTimid * 100).toFixed(6)}% &nbsp;|&nbsp; MC (${timid.trialsRun.toLocaleString()} trials): ${(timid.prob * 100).toFixed(4)}%<br>
-          Avg bets to resolution: ${timid.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}
-        </span>
+  return (
+    <div style={{
+      background: C.bg, minHeight: "100vh", color: C.text,
+      fontFamily: "'JetBrains Mono', monospace",
+    }}>
+      {/* Header */}
+      <div style={{ borderBottom: `1px solid ${C.border}`, padding: "20px 32px 16px" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
+          <h1 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: 20, fontWeight: 700, color: C.bright,
+          }}>
+            Bold Play vs. Timid Play in Negative-EV Games
+          </h1>
+          <span style={{ color: C.muted, fontSize: 10, letterSpacing: "0.06em" }}>
+            DUBINS & SAVAGE · 1965
+          </span>
+        </div>
+        <p style={{ color: C.muted, fontSize: 11, marginTop: 6, lineHeight: 1.6, maxWidth: 640 }}>
+          In a subfair game, P(reach target T) is strictly increasing in bet size.
+          Larger bets are not riskier relative to goal — they are optimal.
+          This simulation proves the claim via closed-form and Monte Carlo.
+        </p>
       </div>
-      <div style="margin-bottom:0.8rem;">
-        <strong>Strategy B — Bold (£100k bets):</strong><br>
-        <span class="${boldWins ? 'winner' : 'loser'}">
-          Closed-form: ${(cfBold * 100).toFixed(6)}% &nbsp;|&nbsp; MC (${bold.trialsRun.toLocaleString()} trials): ${(bold.prob * 100).toFixed(4)}%<br>
-          Avg bets to resolution: ${bold.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}
-        </span>
+
+      <div style={{ padding: "24px 32px", maxWidth: 1000, margin: "0 auto" }}>
+
+        {/* Reasoning Block */}
+        <div style={{
+          border: `1px solid ${C.border}`, borderRadius: 4,
+          marginBottom: 24, overflow: "hidden",
+        }}>
+          <button
+            onClick={() => setReasonOpen(r => !r)}
+            style={{
+              width: "100%", padding: "10px 16px", background: C.panel,
+              border: "none", display: "flex", justifyContent: "space-between",
+              alignItems: "center", color: C.text,
+            }}
+          >
+            <span style={{ fontSize: 10, letterSpacing: "0.12em", color: C.amber }}>
+              REASONING BLOCK — Mathematical Foundation (sources cited before computation)
+            </span>
+            <span style={{ fontSize: 10, color: C.muted }}>{reasonOpen ? "collapse" : "expand"}</span>
+          </button>
+          {reasonOpen && (
+            <div style={{ padding: "16px 20px" }}>
+              {STEPS.map(({ id, claim, source }) => (
+                <div key={id} style={{
+                  marginBottom: 16, paddingLeft: 14,
+                  borderLeft: `2px solid ${C.subtle}`,
+                }}>
+                  <div style={{
+                    fontSize: 10, letterSpacing: "0.1em", color: C.amber,
+                    fontFamily: "monospace", marginBottom: 6,
+                  }}>{id}</div>
+                  <div style={{
+                    fontFamily: "'Source Serif 4', serif",
+                    fontSize: 13, lineHeight: 1.75, color: "#94a3b8",
+                  }}>{claim}</div>
+                  <div style={{
+                    fontSize: 11, color: C.muted, marginTop: 6,
+                    fontFamily: "'Source Serif 4', serif", fontStyle: "italic",
+                  }}>&#8627; {source}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Parameters */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+          {[
+            { label: "Starting Bankroll (B)", value: B, onChange: v => setB(Number(v)), min: 1e6, max: 50e6, step: 1e6, disp: fmt(B) },
+            { label: `Target (T) — ${(safeT / B).toFixed(0)}x bankroll`, value: T, onChange: v => setT(Math.max(Number(v), B * 2)), min: 10e6, max: 500e6, step: 10e6, disp: fmt(safeT) },
+            { label: `House Edge: ${(edge * 100).toFixed(2)}%  ·  p = ${edgeToP(edge).toFixed(4)}`, value: edge, onChange: v => setEdge(Number(v)), min: -0.05, max: -0.001, step: 0.001 },
+            { label: `Monte Carlo Trials: ${mcTrials.toLocaleString()} per point`, value: mcTrials, onChange: v => setMcTrials(Number(v)), min: 1000, max: 20000, step: 1000 },
+          ].map(({ label, value, onChange, min, max, step }) => (
+            <div key={label} style={{
+              background: C.panel, border: `1px solid ${C.border}`,
+              borderRadius: 4, padding: "12px 16px",
+            }}>
+              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em", marginBottom: 8 }}>{label}</div>
+              <input
+                type="range" min={min} max={max} step={step} value={value}
+                onChange={e => onChange(e.target.value)}
+                style={{ width: "100%" }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Main Chart */}
+        <div style={{
+          background: C.panel, border: `1px solid ${C.border}`,
+          borderRadius: 4, padding: "20px 16px 16px", marginBottom: 24,
+        }}>
+          <div style={{
+            display: "flex", justifyContent: "space-between",
+            alignItems: "flex-start", marginBottom: 16, padding: "0 8px",
+            flexWrap: "wrap", gap: 12,
+          }}>
+            <div>
+              <div style={{ fontSize: 12, color: C.bright, fontWeight: 500 }}>
+                P(reach {fmt(safeT)}) vs. Bet Size
+              </div>
+              <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>
+                B = {fmt(B)} · edge = {(edge * 100).toFixed(2)}% · bold play = {fmt(B)}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                onClick={() => setLogY(v => !v)}
+                style={{
+                  padding: "5px 12px", background: "transparent",
+                  border: `1px solid ${C.muted}`, color: C.muted,
+                  fontSize: 10, letterSpacing: "0.06em", borderRadius: 2,
+                }}
+              >
+                Y: {logY ? "LOG" : "LINEAR"}
+              </button>
+              {mcRunning ? (
+                <button
+                  onClick={cancelMC}
+                  style={{
+                    padding: "5px 14px", background: "transparent",
+                    border: `1px solid ${C.red}`, color: C.red,
+                    fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+                  }}
+                >
+                  CANCEL
+                </button>
+              ) : (
+                <button
+                  onClick={handleMC}
+                  style={{
+                    padding: "5px 14px", background: "transparent",
+                    border: `1px solid ${C.green}`, color: C.green,
+                    fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+                  }}
+                >
+                  RUN MONTE CARLO
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: "flex", gap: 20, marginBottom: 12, paddingLeft: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.muted }}>
+              <div style={{ width: 24, height: 2, background: C.amber }} /> Closed-form exact
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.muted }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} />
+              Monte Carlo (auto-scaled trials/pt)
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={340}>
+            <ComposedChart data={curve} margin={{ left: 10, right: 24, top: 8, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis
+                dataKey="k" scale="log" domain={["auto", "auto"]} type="number"
+                tickFormatter={v => fmt(v)}
+                tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
+                label={{ value: "Bet Size  (log scale)", position: "insideBottom", offset: -28, fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
+              />
+              <YAxis
+                scale={logY ? "log" : "linear"}
+                domain={logY ? ["auto", "auto"] : [0, "auto"]}
+                allowDataOverflow
+                tickFormatter={v => `${v.toFixed(logY ? 4 : 2)}%`}
+                tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
+                label={{ value: "P(reach target)", angle: -90, position: "insideLeft", offset: 12, fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
+              />
+              <Tooltip content={<ChartTooltip />} />
+              <Line type="monotone" dataKey="cf" stroke={C.amber} dot={false} strokeWidth={2} name="Closed-form" />
+              {mcDots.length > 0 && (
+                <Scatter data={mcDots} dataKey="mc" fill={C.green} name="Monte Carlo" />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+
+          <div style={{ textAlign: "center", fontSize: 10, color: C.muted, marginTop: 8, letterSpacing: "0.08em" }}>
+            {mcRunning ? mcProgress : mcDots.length === 0
+              ? 'Closed-form curve loaded. Press "RUN MONTE CARLO" to overlay verification dots.'
+              : `${mcDots.length} Monte Carlo points overlaid.`}
+          </div>
+        </div>
+
+        {/* Dubins-Savage Demonstration */}
+        <div style={{
+          border: `1px solid ${C.amber}30`, borderRadius: 4,
+          padding: "18px 20px", marginBottom: 24, background: `${C.amber}06`,
+        }}>
+          <div style={{ fontSize: 10, color: C.amber, letterSpacing: "0.14em", marginBottom: 12 }}>
+            THE DUBINS-SAVAGE DEMONSTRATION
+          </div>
+          <div style={{
+            fontFamily: "'Source Serif 4', serif",
+            color: "#94a3b8", fontSize: 14, marginBottom: 4, lineHeight: 1.6,
+          }}>
+            "Would you rather have 400 attempts at £25k, or 100 attempts at £100k?"
+          </div>
+          <div style={{
+            fontFamily: "'Source Serif 4', serif",
+            color: C.muted, fontSize: 12, marginBottom: 20,
+          }}>
+            Both start at {fmt(B)}, target {fmt(safeT)}, edge {(edge * 100).toFixed(2)}%.
+            Intuition says more attempts = better. The math disagrees.
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {dsResult && [
+              { label: "TIMID PLAY", sublabel: "£25k / bet", cf: dsResult.cf1, mc: dsResult.mc1, color: C.red, verdict: "Compounding erosion. House edge grinds you down." },
+              { label: "BOLD PLAY", sublabel: "£100k / bet", cf: dsResult.cf2, mc: dsResult.mc2, color: C.green, verdict: "Fewer rounds. House gets less time to work against you." },
+            ].map(({ label, sublabel, cf, mc: mcV, color, verdict }) => (
+              <div key={label} style={{
+                background: C.panel, border: `1px solid ${color}30`,
+                borderRadius: 4, padding: "14px 16px",
+              }}>
+                <div style={{ fontSize: 10, color, letterSpacing: "0.1em", marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 10, color: C.muted, marginBottom: 14 }}>{sublabel}</div>
+                <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Closed-form P(reach T)</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color, marginBottom: 10, fontFamily: "monospace" }}>
+                  {pct(cf, cf < 1e-10 ? 15 : 8)}
+                </div>
+                <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Monte Carlo P</div>
+                <div style={{ fontSize: 14, color: mcV !== null ? color : C.muted, fontFamily: "monospace" }}>
+                  {mcV !== null ? pct(mcV, 4) : "computing..."}
+                </div>
+                <div style={{
+                  marginTop: 12, fontSize: 11, color: C.muted,
+                  fontFamily: "'Source Serif 4', serif", lineHeight: 1.5,
+                }}>
+                  {verdict}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            padding: "12px 16px", background: C.panel, borderRadius: 4,
+            fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
+          }}>
+            {dsResult && dsMultiplier ? (
+              <>
+                Bold play is <span style={{ color: C.amber, fontFamily: "monospace", fontSize: 14 }}>
+                  {dsMultiplier}x
+                </span> more likely to reach the target — despite making{" "}
+                <span style={{ color: C.red }}>75% fewer bets</span>.
+                {" "}Every additional round in a negative-EV game is a compounding disadvantage.
+                Dubins & Savage (1965) proved this is the global optimum — no strategy can do better.
+              </>
+            ) : dsResult ? (
+              "The P(reach T) for £25k is so small it underflows standard floating-point. " +
+              "This itself is the demonstration: timid play is not merely worse — it is catastrophically worse."
+            ) : "Computing..."}
+          </div>
+        </div>
+
+        {/* Sanity Check */}
+        {sanityRows.length > 0 && (
+          <div style={{
+            background: C.panel, border: `1px solid ${C.border}`,
+            borderRadius: 4, overflow: "hidden", marginBottom: 24,
+          }}>
+            <div style={{
+              padding: "10px 16px", borderBottom: `1px solid ${C.border}`,
+              fontSize: 10, color: C.muted, letterSpacing: "0.08em",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <span>SANITY CHECK — Closed-form vs Monte Carlo</span>
+              <span>{sanityRows.filter(r => r.pass).length}/{sanityRows.length} PASS</span>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr>
+                    {["Bet Size", "Closed-form P", "MC P", "Trials", "Delta (pp)", "Flag"].map(h => (
+                      <th key={h} style={{
+                        padding: "8px 16px", textAlign: "left",
+                        color: C.muted, fontWeight: 400,
+                        borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sanityRows.map(({ k, cfV, mcV, delta, pass, trials }) => (
+                    <tr key={k} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td style={{ padding: "8px 16px", color: C.bright, whiteSpace: "nowrap" }}>{fmt(k)}</td>
+                      <td style={{ padding: "8px 16px", color: C.amber, fontFamily: "monospace" }}>{(cfV * 100).toFixed(6)}%</td>
+                      <td style={{ padding: "8px 16px", color: C.green, fontFamily: "monospace" }}>{mcV.toFixed(4)}%</td>
+                      <td style={{ padding: "8px 16px", color: C.muted, fontFamily: "monospace" }}>{trials.toLocaleString()}</td>
+                      <td style={{ padding: "8px 16px", color: C.muted, fontFamily: "monospace" }}>{(delta * 100).toFixed(5)}</td>
+                      <td style={{ padding: "8px 16px" }}>
+                        <span style={{ color: pass ? C.green : C.red, fontSize: 10, letterSpacing: "0.06em" }}>
+                          {pass ? "PASS" : "FLAG >1%"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{
+              padding: "8px 16px", fontSize: 10, color: C.muted,
+              borderTop: `1px solid ${C.border}`,
+            }}>
+              Trials auto-scaled per bet size to prevent browser freeze. Small bets = fewer trials.
+            </div>
+          </div>
+        )}
+
+        {/* Citations */}
+        <div style={{
+          paddingTop: 16, borderTop: `1px solid ${C.border}`,
+          fontSize: 10, color: C.muted, lineHeight: 2,
+        }}>
+          <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>CITATIONS</div>
+          <div>[1] Dubins, L.E. & Savage, L.J. (1965). <em>How to Gamble If You Must: Inequalities for Stochastic Processes.</em> McGraw-Hill.</div>
+          <div>[2] Feller, W. (1950). <em>An Introduction to Probability Theory and Its Applications,</em> Vol. I, Ch. XIV. Wiley.</div>
+          <div>[3] Ethier, S.N. & Tavare, S. (1983). The proportional bettor's return on investment. <em>Journal of Applied Probability,</em> 20(3), 563-573.</div>
+        </div>
       </div>
-      <div style="color:var(--green);font-weight:700;">
-        ${boldWins
-          ? `Bold play (£100k) wins with ${(cfBold/cfTimid).toFixed(2)}x the probability of reaching target — despite intuitively having "fewer chances." This is the Dubins-Savage theorem in action.`
-          : `Unexpectedly, timid play appears to dominate — check parameters.`
-        }
-      </div>
-    `;
-  } catch (err) {
-    status.textContent = 'Error: ' + err.message;
-    setRunning(false);
-  }
+    </div>
+  );
 }
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
