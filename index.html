@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bold Play vs. Timid Play — Gambler's Ruin Simulation</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3345;
+    --text: #e1e4ed;
+    --text-dim: #8b90a0;
+    --accent: #6c8cff;
+    --accent2: #ff6c8c;
+    --green: #4caf86;
+    --red: #e05555;
+    --yellow: #e0c055;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header p { color: var(--text-dim); font-size: 0.95rem; }
+
+  /* Controls */
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .control-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.3rem;
+  }
+  .control-group input, .control-group select {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: var(--mono);
+  }
+  .control-group input:focus, .control-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .bet-sizes-row {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0.5rem;
+    align-items: end;
+    flex-wrap: wrap;
+  }
+  .bet-sizes-row .control-group { flex: 1; min-width: 150px; }
+  .btn {
+    padding: 0.55rem 1.2rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-demo { background: var(--accent2); color: #fff; }
+
+  .actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  /* Reasoning blocks */
+  .reasoning {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.2rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+  .reasoning summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
+  .reasoning .source { color: var(--yellow); }
+  .reasoning .assumption { color: var(--accent2); }
+  .reasoning .claim { color: var(--green); }
+
+  /* Chart */
+  .chart-container {
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .chart-container h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+  canvas { max-height: 420px; }
+
+  /* Sanity check table */
+  .sanity-panel {
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .sanity-panel h2 { font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+  }
+  th, td {
+    text-align: right;
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--text-dim); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+  td:first-child, th:first-child { text-align: left; }
+  .pass { color: var(--green); }
+  .fail { color: var(--red); font-weight: 700; }
+
+  /* Secondary outputs */
+  .secondary-panel {
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .secondary-panel h2 { font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; }
+
+  /* Dubins-Savage demo */
+  .demo-box {
+    background: var(--surface2);
+    border: 2px solid var(--accent2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .demo-box h3 { color: var(--accent2); margin-bottom: 0.5rem; font-size: 1rem; }
+  .demo-box p { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 0.8rem; }
+  .demo-result { font-family: var(--mono); font-size: 0.9rem; }
+  .demo-result span.winner { color: var(--green); font-weight: 700; }
+  .demo-result span.loser { color: var(--text-dim); }
+
+  /* Citations */
+  .citations {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    margin-top: 2rem;
+  }
+  .citations h3 { font-size: 0.9rem; color: var(--text); margin-bottom: 0.5rem; }
+  .citations ol { padding-left: 1.2rem; }
+  .citations li { margin-bottom: 0.3rem; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 0.4rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #status { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem; }
+
+  .crossover-note {
+    font-size: 0.85rem;
+    color: var(--yellow);
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Bold Play vs. Timid Play</h1>
+    <p>Gambler's Ruin simulation — verifying that bold play maximizes P(reach target) in subfair games</p>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="control-group">
+      <label>Starting Bankroll (B)</label>
+      <input type="text" id="bankroll" value="10000000" placeholder="e.g. 10000000">
+    </div>
+    <div class="control-group">
+      <label>Target (T)</label>
+      <input type="text" id="target" value="100000000" placeholder="e.g. 100000000">
+    </div>
+    <div class="control-group">
+      <label>House Edge (e)</label>
+      <input type="number" id="edge" value="-0.5" step="0.01" min="-5" max="-0.01">
+      <span style="font-size:0.75rem;color:var(--text-dim)">% (negative)</span>
+    </div>
+    <div class="control-group">
+      <label>Monte Carlo Trials (N)</label>
+      <input type="number" id="trials" value="50000" min="1000" max="500000" step="1000">
+    </div>
+    <div class="control-group">
+      <label>Rounds per Hour</label>
+      <input type="number" id="roundsPerHour" value="60" min="1" max="1000">
+    </div>
+    <div class="bet-sizes-row">
+      <div class="control-group">
+        <label>Bet Sizes (comma-separated)</label>
+        <input type="text" id="betSizes" value="25000, 100000, 500000, 1000000, 2500000, 5000000, 10000000" placeholder="25000, 100000, ...">
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" onclick="runSimulation()">Run Simulation</button>
+    <button class="btn btn-demo" onclick="runDubinsSavageDemo()">Dubins-Savage Demo</button>
+  </div>
+
+  <div id="status"></div>
+
+  <!-- Reasoning blocks (rendered before results) -->
+  <div id="reasoning-container"></div>
+
+  <!-- Chart -->
+  <div class="chart-container" id="chart-section" style="display:none;">
+    <h2>P(Reach Target) vs. Bet Size</h2>
+    <canvas id="mainChart"></canvas>
+    <div id="crossover-note"></div>
+  </div>
+
+  <!-- Sanity check -->
+  <div class="sanity-panel" id="sanity-section" style="display:none;">
+    <h2>Sanity Check — Closed-Form vs. Monte Carlo</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Bet Size</th>
+          <th>Closed-Form P</th>
+          <th>Monte Carlo P</th>
+          <th>Delta</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="sanity-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Secondary outputs -->
+  <div class="secondary-panel" id="secondary-section" style="display:none;">
+    <h2>Session Statistics</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Bet Size</th>
+          <th>E[Bets to Resolution]</th>
+          <th>Median Session Length</th>
+          <th>P(Reach Target)</th>
+        </tr>
+      </thead>
+      <tbody id="secondary-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Dubins-Savage Demo -->
+  <div class="demo-box" id="demo-section" style="display:none;">
+    <h3>Dubins-Savage Demonstration</h3>
+    <p>"Would you rather have 400 attempts at £25k or 100 attempts at £100k?"</p>
+    <div id="demo-results" class="demo-result"></div>
+  </div>
+
+  <!-- Citations -->
+  <div class="citations">
+    <h3>References</h3>
+    <ol>
+      <li id="ref1">Dubins, L.E. & Savage, L.J. (1965). <em>How to Gamble If You Must: Inequalities for Stochastic Processes</em>. McGraw-Hill. — Bold play optimality theorem for subfair games.</li>
+      <li id="ref2">Feller, W. (1968). <em>An Introduction to Probability Theory and Its Applications</em>, Vol. I, Ch. XIV. Wiley. — Classical Gambler's Ruin derivation and closed-form solutions.</li>
+      <li id="ref3">Ethier, S.N. & Tavaré, S. (1983). "The Proportional Bettor's Return on Investment." <em>Journal of Applied Probability</em>, 20(3), 563–573. — Generalization to negative expected value games.</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Closed-form calculator
+// ============================================================
+function closedFormP(B, T, edge, k) {
+  // edge is negative, e.g. -0.005 for -0.5%
+  // p = probability of winning a single bet = 0.5 + edge/2
+  // For a fair coin with edge: p = (1 + edge) / 2... actually
+  // House edge e means: EV per unit bet = -|e|
+  // So p - q = -|e|, p + q = 1 => p = (1 - |e|) / 2, q = (1 + |e|) / 2
+  const absEdge = Math.abs(edge);
+  const p = (1 - absEdge) / 2;
+  const q = (1 + absEdge) / 2;
+
+  // Number of steps from start and to target
+  const stepsFromZero = B / k;
+  const stepsTotal = T / k;
+
+  // If B or T not divisible by k, we need to handle — use nearest
+  const n = Math.round(stepsFromZero);
+  const N = Math.round(stepsTotal);
+
+  if (n <= 0) return 0;
+  if (n >= N) return 1;
+
+  // Biased game: P(reach T | start B) = (1 - (q/p)^n) / (1 - (q/p)^N)
+  const r = q / p; // > 1 for subfair
+
+  // For large N, (q/p)^N can overflow. Use log-space.
+  const logR = Math.log(r);
+
+  if (logR * N > 700) {
+    // (q/p)^N is effectively infinity
+    // P ≈ 1 - r^n ≈ ... actually P → 0 for large N if r > 1
+    // More precisely: P = (1 - r^n) / (1 - r^N)
+    // When r^N >> r^n >> 1: P ≈ r^n / r^N = r^(n-N)
+    return Math.exp(logR * (n - N));
+  }
+
+  const rN = Math.exp(logR * n);
+  const rT = Math.exp(logR * N);
+  return (1 - rN) / (1 - rT);
+}
+
+// ============================================================
+// Monte Carlo engine (runs in main thread with chunking)
+// ============================================================
+function monteCarloSingle(B, T, edge, k, N) {
+  const absEdge = Math.abs(edge);
+  const p = (1 - absEdge) / 2;
+  let wins = 0;
+  let totalBets = 0;
+  const betCounts = [];
+
+  for (let i = 0; i < N; i++) {
+    let bankroll = B;
+    let bets = 0;
+    while (bankroll > 0 && bankroll < T) {
+      const bet = Math.min(k, bankroll, T - bankroll);
+      bets++;
+      if (Math.random() < p) {
+        bankroll += bet;
+      } else {
+        bankroll -= bet;
+      }
+    }
+    totalBets += bets;
+    betCounts.push(bets);
+    if (bankroll >= T) wins++;
+  }
+
+  betCounts.sort((a, b) => a - b);
+  const median = betCounts[Math.floor(N / 2)];
+
+  return {
+    prob: wins / N,
+    avgBets: totalBets / N,
+    medianBets: median
+  };
+}
+
+// ============================================================
+// Rendering
+// ============================================================
+function formatMoney(v) {
+  if (v >= 1e9) return '£' + (v / 1e9).toFixed(1) + 'B';
+  if (v >= 1e6) return '£' + (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return '£' + (v / 1e3).toFixed(0) + 'k';
+  return '£' + v;
+}
+
+function formatTime(hours) {
+  if (hours < 1) return (hours * 60).toFixed(0) + ' min';
+  if (hours < 24) return hours.toFixed(1) + ' hrs';
+  if (hours < 720) return (hours / 24).toFixed(1) + ' days';
+  if (hours < 8760) return (hours / 720).toFixed(1) + ' months';
+  return (hours / 8760).toFixed(1) + ' years';
+}
+
+function renderReasoning(steps) {
+  const container = document.getElementById('reasoning-container');
+  container.innerHTML = '';
+  steps.forEach(step => {
+    const details = document.createElement('details');
+    details.className = 'reasoning';
+    details.open = true;
+    details.innerHTML = `
+      <summary>${step.title}</summary>
+      <div><span class="claim">Claim:</span> ${step.claim}</div>
+      <div><span class="source">Source:</span> ${step.source}</div>
+      <div><span class="assumption">Assumption:</span> ${step.assumption}</div>
+      <div style="margin-top:0.3rem;color:var(--text);">Proceeding to: ${step.next}</div>
+    `;
+    container.appendChild(details);
+  });
+}
+
+let mainChart = null;
+
+function renderChart(betSizes, closedFormPs, mcPs) {
+  const section = document.getElementById('chart-section');
+  section.style.display = 'block';
+  const ctx = document.getElementById('mainChart').getContext('2d');
+
+  if (mainChart) mainChart.destroy();
+
+  // Build a dense closed-form curve
+  const minBet = Math.min(...betSizes);
+  const maxBet = Math.max(...betSizes);
+  const B = parseNum(document.getElementById('bankroll').value);
+  const T = parseNum(document.getElementById('target').value);
+  const edge = parseFloat(document.getElementById('edge').value) / 100;
+  const curvePoints = 200;
+  const curveLabels = [];
+  const curveData = [];
+  for (let i = 0; i <= curvePoints; i++) {
+    const k = minBet + (maxBet - minBet) * (i / curvePoints);
+    curveLabels.push(k);
+    curveData.push(closedFormP(B, T, edge, k) * 100);
+  }
+
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: curveLabels,
+      datasets: [
+        {
+          label: 'Closed-Form P(reach T)',
+          data: curveData,
+          borderColor: '#6c8cff',
+          backgroundColor: 'rgba(108,140,255,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
+          borderWidth: 2,
+        },
+        {
+          label: 'Monte Carlo P(reach T)',
+          data: betSizes.map((k, i) => ({ x: k, y: mcPs[i] * 100 })),
+          type: 'scatter',
+          backgroundColor: '#ff6c8c',
+          borderColor: '#ff6c8c',
+          pointRadius: 6,
+          pointHoverRadius: 8,
+        },
+        {
+          label: 'Closed-Form (at bet sizes)',
+          data: betSizes.map((k, i) => ({ x: k, y: closedFormPs[i] * 100 })),
+          type: 'scatter',
+          backgroundColor: '#6c8cff',
+          borderColor: '#fff',
+          pointRadius: 5,
+          pointStyle: 'rectRot',
+          pointHoverRadius: 7,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'nearest', intersect: false },
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: 'Bet Size (£)', color: '#8b90a0' },
+          ticks: {
+            color: '#8b90a0',
+            callback: v => formatMoney(v)
+          },
+          grid: { color: 'rgba(46,51,69,0.5)' }
+        },
+        y: {
+          title: { display: true, text: 'P(Reach Target) %', color: '#8b90a0' },
+          ticks: { color: '#8b90a0' },
+          grid: { color: 'rgba(46,51,69,0.5)' },
+          min: 0
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#e1e4ed' } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed?.y ?? ctx.raw?.y;
+              return ctx.dataset.label + ': ' + (v != null ? v.toFixed(4) + '%' : '');
+            },
+            title: ctx => {
+              const x = ctx[0]?.parsed?.x ?? ctx[0]?.raw?.x ?? ctx[0]?.label;
+              return 'Bet: ' + formatMoney(x);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderSanity(betSizes, cfPs, mcPs) {
+  const section = document.getElementById('sanity-section');
+  section.style.display = 'block';
+  const tbody = document.getElementById('sanity-body');
+  tbody.innerHTML = '';
+  betSizes.forEach((k, i) => {
+    const delta = Math.abs(cfPs[i] - mcPs[i]);
+    const pct = (delta * 100).toFixed(3);
+    const pass = delta < 0.01;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${formatMoney(k)}</td>
+      <td>${(cfPs[i] * 100).toFixed(4)}%</td>
+      <td>${(mcPs[i] * 100).toFixed(4)}%</td>
+      <td>${pct}%</td>
+      <td class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL — Δ > 1%'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderSecondary(betSizes, mcResults) {
+  const section = document.getElementById('secondary-section');
+  section.style.display = 'block';
+  const rph = parseInt(document.getElementById('roundsPerHour').value) || 60;
+  const tbody = document.getElementById('secondary-body');
+  tbody.innerHTML = '';
+  betSizes.forEach((k, i) => {
+    const r = mcResults[i];
+    const medianHours = r.medianBets / rph;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${formatMoney(k)}</td>
+      <td>${r.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
+      <td>${formatTime(medianHours)}</td>
+      <td>${(r.prob * 100).toFixed(4)}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function parseNum(s) {
+  return parseInt(s.replace(/[^0-9]/g, ''), 10);
+}
+
+// ============================================================
+// Main simulation runner
+// ============================================================
+async function runSimulation() {
+  const B = parseNum(document.getElementById('bankroll').value);
+  const T = parseNum(document.getElementById('target').value);
+  const edgePct = parseFloat(document.getElementById('edge').value);
+  const edge = edgePct / 100;
+  const N = parseInt(document.getElementById('trials').value);
+  const betSizes = document.getElementById('betSizes').value
+    .split(',').map(s => parseNum(s)).filter(k => k > 0 && k <= T).sort((a, b) => a - b);
+
+  if (B >= T) { alert('Target must be greater than bankroll.'); return; }
+  if (betSizes.length === 0) { alert('Enter at least one valid bet size.'); return; }
+
+  // Step 1: Render reasoning BEFORE any computation
+  renderReasoning([
+    {
+      title: 'STEP 1 — Model Selection',
+      claim: 'Bold play maximizes P(reach T) in subfair games.',
+      source: 'Dubins & Savage (1965), Theorem 1. [Ref 1]',
+      assumption: 'Bets are discrete, no fractional units, no table limits.',
+      next: 'closed-form calculation.'
+    },
+    {
+      title: 'STEP 2 — Closed-Form Calculation',
+      claim: `P(reach T) = (1 − (q/p)^(B/k)) / (1 − (q/p)^(T/k)) with p=${((1 - Math.abs(edge)) / 2).toFixed(6)}, q=${((1 + Math.abs(edge)) / 2).toFixed(6)}.`,
+      source: 'Feller (1968), Ch. XIV, Gambler\'s Ruin formula. [Ref 2]',
+      assumption: `Bankroll B=${formatMoney(B)}, Target T=${formatMoney(T)}, edge=${edgePct}%. Bet sizes must divide evenly into B and T for exact formula; nearest rounding applied otherwise.`,
+      next: 'Monte Carlo validation.'
+    },
+    {
+      title: 'STEP 3 — Monte Carlo Validation',
+      claim: `N=${N.toLocaleString()} independent trials per bet size will yield estimates within ~${(1/Math.sqrt(N)*100).toFixed(2)}% of true value (1/√N).`,
+      source: 'Ethier & Tavaré (1983) for negative-EV generalization. [Ref 3]',
+      assumption: 'Pseudorandom generator (Math.random) is sufficient; no cryptographic randomness required for statistical validation.',
+      next: 'comparison and visualization.'
+    }
+  ]);
+
+  // Step 2: Closed-form
+  const cfPs = betSizes.map(k => closedFormP(B, T, edge, k));
+
+  // Step 3: Monte Carlo (async-chunked to keep UI responsive)
+  const status = document.getElementById('status');
+  status.innerHTML = '<span class="spinner"></span> Running Monte Carlo...';
+
+  const mcResults = [];
+  for (let i = 0; i < betSizes.length; i++) {
+    status.innerHTML = `<span class="spinner"></span> Monte Carlo: bet size ${formatMoney(betSizes[i])} (${i + 1}/${betSizes.length})...`;
+    await new Promise(resolve => setTimeout(resolve, 10)); // yield to UI
+    mcResults.push(monteCarloSingle(B, T, edge, betSizes[i], N));
+  }
+
+  const mcPs = mcResults.map(r => r.prob);
+  status.textContent = 'Simulation complete.';
+
+  // Step 4: Render outputs
+  renderChart(betSizes, cfPs, mcPs);
+  renderSanity(betSizes, cfPs, mcPs);
+  renderSecondary(betSizes, mcResults);
+
+  // Crossover check
+  const crossoverNote = document.getElementById('crossover-note');
+  let crossoverFound = false;
+  for (let i = 1; i < cfPs.length; i++) {
+    if (cfPs[i] < cfPs[i - 1]) {
+      crossoverNote.innerHTML = `<div class="crossover-note">⚠ Crossover detected: P(reach T) decreases from ${formatMoney(betSizes[i-1])} to ${formatMoney(betSizes[i])}. This may occur when bet size does not evenly divide bankroll/target.</div>`;
+      crossoverFound = true;
+      break;
+    }
+  }
+  if (!crossoverFound) {
+    crossoverNote.innerHTML = `<div class="crossover-note">No crossover found — P(reach T) is monotonically non-decreasing with bet size, confirming bold play dominance for target-reaching in subfair games.</div>`;
+  }
+}
+
+// ============================================================
+// Dubins-Savage demonstration
+// ============================================================
+async function runDubinsSavageDemo() {
+  const B = 10000000;   // £10M
+  const T = 100000000;  // £100M
+  const edge = -0.005;  // -0.5%
+  const N = parseInt(document.getElementById('trials').value) || 50000;
+
+  const section = document.getElementById('demo-section');
+  section.style.display = 'block';
+  const results = document.getElementById('demo-results');
+  const status = document.getElementById('status');
+
+  // Reasoning first
+  renderReasoning([
+    {
+      title: 'DUBINS-SAVAGE DEMONSTRATION — Setup',
+      claim: 'A player with fewer, bolder bets has a higher probability of reaching target than one with many, timid bets — even though intuition suggests "more chances = better odds."',
+      source: 'Dubins & Savage (1965), core theorem. [Ref 1]',
+      assumption: `B=£10M, T=£100M, edge=−0.5%. Comparing 400×£25k (timid) vs 100×£100k (bold). Note: these are not fixed-attempt-count strategies — the player continues until ruin or target. The "400 attempts" framing is the intuitive but incorrect reasoning.`,
+      next: 'run both strategies and compare.'
+    }
+  ]);
+
+  status.innerHTML = '<span class="spinner"></span> Running Dubins-Savage demo (timid: £25k)...';
+  await new Promise(r => setTimeout(r, 10));
+  const timid = monteCarloSingle(B, T, edge, 25000, N);
+
+  status.innerHTML = '<span class="spinner"></span> Running Dubins-Savage demo (bold: £100k)...';
+  await new Promise(r => setTimeout(r, 10));
+  const bold = monteCarloSingle(B, T, edge, 100000, N);
+
+  const cfTimid = closedFormP(B, T, edge, 25000);
+  const cfBold = closedFormP(B, T, edge, 100000);
+
+  status.textContent = 'Demo complete.';
+
+  const boldWins = cfBold > cfTimid;
+  results.innerHTML = `
+    <div style="margin-bottom:0.8rem;">
+      <strong>Strategy A — Timid (£25k bets):</strong><br>
+      <span class="${boldWins ? 'loser' : 'winner'}">
+        Closed-form: ${(cfTimid * 100).toFixed(6)}% &nbsp;|&nbsp; MC (${N.toLocaleString()} trials): ${(timid.prob * 100).toFixed(4)}%<br>
+        Avg bets to resolution: ${timid.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}
+      </span>
+    </div>
+    <div style="margin-bottom:0.8rem;">
+      <strong>Strategy B — Bold (£100k bets):</strong><br>
+      <span class="${boldWins ? 'winner' : 'loser'}">
+        Closed-form: ${(cfBold * 100).toFixed(6)}% &nbsp;|&nbsp; MC (${N.toLocaleString()} trials): ${(bold.prob * 100).toFixed(4)}%<br>
+        Avg bets to resolution: ${bold.avgBets.toLocaleString(undefined, {maximumFractionDigits: 0})}
+      </span>
+    </div>
+    <div style="color:var(--green);font-weight:700;">
+      ${boldWins
+        ? `Bold play (£100k) wins with ${(cfBold/cfTimid).toFixed(2)}× the probability of reaching target — despite intuitively having "fewer chances." This is the Dubins-Savage theorem in action.`
+        : `Unexpectedly, timid play appears to dominate — check parameters.`
+      }
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
