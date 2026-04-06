@@ -77,6 +77,193 @@ const S = {
   xxl: 28,   // H1, display
 };
 
+// ── i18n ─────────────────────────────────────────────────────────────────────
+const LANG = {
+  en: {
+    // Header
+    title: "The Dice Don't Care",
+    subtitle: "Settlers of Catan Statistics",
+    tags: ["DICE PROBABILITY", "GAMBLER'S FALLACY", "DEVELOPMENT CARDS"],
+    headerDesc: "Every dice roll and card draw has an exact probability. Here's the math.",
+    // Nav
+    navGR: "GAMBLER'S RUIN",
+    navCatan: "CATAN STATISTICS",
+    // Section 2
+    s2title: "Two-Dice Distribution",
+    s2sub: "P(sum) for 2d6",
+    s2outcomes: "36 outcomes",
+    s2combos: "ALL COMBINATIONS BY SUM",
+    s2callout1: "6x more likely",
+    s2callout2: "1-in-6 chance of robber",
+    s2calloutPre: "7 is ",
+    s2calloutMid: " than 2 or 12. Every roll: ",
+    // Section 3
+    s3title: "70-Roll Simulation",
+    s3sub: "One typical game (~70 rolls)",
+    s3rolling: "ROLLING...",
+    s3rerun: "RE-RUN",
+    s3run: "RUN SIMULATION",
+    s3rollOf: "Roll {n} of 70",
+    s3note: "70 rolls is a small sample. Shape is recognizable but noisy. Some sums may not appear; others may double expected count. Normal.",
+    // Section 4
+    s4title: "Convergence",
+    s4sub: "How many rolls until theory matches observation?",
+    s4chi: "chi-squared",
+    s4nodev: "no significant deviation",
+    s4sigdev: "significant deviation",
+    s4rolls: "rolls",
+    s4callout: "Clean bell curve: ~360 rolls",
+    s4calloutSuffix: " (~5 games).",
+    s4conv70: "70 rolls = one game. Noisy, irregular. Some sums may not appear at all.",
+    s4conv360: "360 rolls = ~5 games. Bell shape emerging. Peak at 7 visible, edges still rough.",
+    s4conv1000: "1,000 rolls. Recognizably bell-shaped. Deviations shrinking.",
+    s4conv5000: "5,000 rolls. Histogram tracks theory closely.",
+    s4conv36000: "36,000 rolls. Nearly indistinguishable from theory.",
+    // Section 5
+    s5title: "Gambler's Fallacy",
+    s5sub: "Streaks don't change the next roll",
+    s5addRoll: "ADD ROLL",
+    s5streak: "STREAK: NO 7",
+    s5reset: "RESET",
+    s5noRolls: "No rolls yet.",
+    s5streakCount: "Current streak without a 7: {n} roll(s)",
+    s5pLabel: "P(NEXT ROLL = 7)",
+    s5pNote: "After any number of non-7 rolls, P(7) stays 16.67%.",
+    s5intuition: "INTUITION",
+    s5reality: "REALITY",
+    s5due: '"It\'s due for a 7"',
+    s5implied: "Implied P ~ 40% (wrong)",
+    s5independent: "Independent trials",
+    s5noMemory: " \u2014 no memory",
+    s5always: "P = 16.67%, always",
+    // Section 6
+    s6title: "Development Cards",
+    s6sub: "Draw without replacement",
+    s6cards: "cards",
+    s6remaining: "remaining",
+    s6resetDeck: "RESET DECK",
+    s6draw: "+ DRAW",
+    s6knightWarning: "Largest Army",
+    s6knightContested: "contested \u2014 {n} knight(s) left",
+    s6knightLocked: "All Knights drawn. {la} locked.",
+    s6insight: "First draw: ",
+    s6insightKnight: "56% Knight",
+    s6insightMonopoly: "8% Monopoly",
+    s6insightEnd: ". As Knights get played, the gap closes.",
+    // Section 7
+    s7title: "MATHEMATICAL FOUNDATION",
+    s7collapse: "collapse",
+    s7expand: "expand",
+    s7step1: "STEP 1 \u2014 Combinatorics",
+    s7claim1: "Two fair dice produce a triangular distribution on {2...12}. Combinations per sum: min(s-1, 13-s) out of 36. Pyramid: 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1.",
+    s7step2: "STEP 2 \u2014 Law of Large Numbers",
+    s7claim2: "Sample mean of i.i.d. variables converges to population mean as n grows. Observed frequency approaches theoretical probability. Rate: O(1/\u221An).",
+    s7step3: "STEP 3 \u2014 Independence",
+    s7claim3: "Independent iff P(A and B) = P(A) x P(B). Dice satisfy this physically. P(7 | any prior history) = P(7) = 1/6.",
+    s7step4: "STEP 4 \u2014 Hypergeometric",
+    s7claim4: "Drawing without replacement: hypergeometric. P(type X) = K/N where K = remaining of type X, N = total remaining. Not binomial \u2014 each draw changes deck composition.",
+    // Section 8
+    s8title: "CITATIONS",
+    // Legend
+    theory: "Theory",
+    observed: "Observed",
+    combinations: "combination(s)",
+    closedForm: "Closed-form exact",
+    monteCarlo: "Monte Carlo",
+    // Tooltip
+    ttSum: "Sum",
+    ttTheory: "Theory",
+    ttObserved: "Observed",
+    ttRolls: "rolls",
+  },
+  ja: {
+    title: "サイコロは忘れる",
+    subtitle: "カタンの統計学",
+    tags: ["サイコロ確率", "ギャンブラーの誤謬", "発展カード"],
+    headerDesc: "すべてのサイコロと引いたカードには正確な確率がある。",
+    navGR: "破産問題",
+    navCatan: "カタン統計",
+    s2title: "2つのサイコロの分布",
+    s2sub: "2d6の合計確率",
+    s2outcomes: "36通り",
+    s2combos: "合計別の全組み合わせ",
+    s2callout1: "6倍出やすい",
+    s2callout2: "盗賊確率 1/6",
+    s2calloutPre: "7は2や12より",
+    s2calloutMid: "。毎回：",
+    s3title: "70回シミュレーション",
+    s3sub: "1ゲーム分（約70回）",
+    s3rolling: "実行中...",
+    s3rerun: "再実行",
+    s3run: "シミュレーション開始",
+    s3rollOf: "{n}/70回目",
+    s3note: "70回は少ないサンプル。形は見えるがノイズが多い。出ない目や倍出る目がある。正常。",
+    s4title: "収束",
+    s4sub: "理論と観測が一致するまで何回？",
+    s4chi: "カイ二乗",
+    s4nodev: "有意差なし",
+    s4sigdev: "有意差あり",
+    s4rolls: "回",
+    s4callout: "きれいな釣鐘型：約360回",
+    s4calloutSuffix: "（約5ゲーム）。",
+    s4conv70: "70回＝1ゲーム。ノイズが多く不規則。",
+    s4conv360: "360回＝約5ゲーム。釣鐘型が見え始める。",
+    s4conv1000: "1,000回。釣鐘型と分かる。偏差が縮小。",
+    s4conv5000: "5,000回。理論曲線にほぼ一致。",
+    s4conv36000: "36,000回。理論と区別がつかない。",
+    s5title: "ギャンブラーの誤謬",
+    s5sub: "連続は次の目に影響しない",
+    s5addRoll: "サイコロを振る",
+    s5streak: "7以外を連続",
+    s5reset: "リセット",
+    s5noRolls: "まだ振っていません。",
+    s5streakCount: "7が出ない連続：{n}回",
+    s5pLabel: "P(次に7) ",
+    s5pNote: "何回7が出なくても、P(7)は常に16.67%。",
+    s5intuition: "直感",
+    s5reality: "現実",
+    s5due: "「そろそろ7が出るはず」",
+    s5implied: "思い込みP ≈ 40%（誤り）",
+    s5independent: "独立試行",
+    s5noMemory: " — 記憶なし",
+    s5always: "P = 16.67%、常に",
+    s6title: "発展カード",
+    s6sub: "非復元抽出",
+    s6cards: "枚",
+    s6remaining: "残り",
+    s6resetDeck: "リセット",
+    s6draw: "引く",
+    s6knightWarning: "最大騎士力",
+    s6knightContested: "争奪中 — 騎士残り{n}枚",
+    s6knightLocked: "全騎士使用済み。{la}確定。",
+    s6insight: "初回：",
+    s6insightKnight: "56%が騎士",
+    s6insightMonopoly: "8%が独占",
+    s6insightEnd: "。騎士が使われると差は縮まる。",
+    s7title: "数学的基礎",
+    s7collapse: "閉じる",
+    s7expand: "開く",
+    s7step1: "手順1 — 組合せ論",
+    s7claim1: "2つのサイコロの合計は{2...12}上の三角分布。合計sの組合せ数：min(s-1, 13-s)/36。ピラミッド型：1,2,3,4,5,6,5,4,3,2,1。",
+    s7step2: "手順2 — 大数の法則",
+    s7claim2: "i.i.d.変数の標本平均はnの増加とともに母平均に収束。収束速度：O(1/√n)。",
+    s7step3: "手順3 — 独立性",
+    s7claim3: "P(AかつB) = P(A)×P(B)のとき独立。サイコロは物理的にこれを満たす。P(7|過去の履歴) = P(7) = 1/6。",
+    s7step4: "手順4 — 超幾何分布",
+    s7claim4: "非復元抽出は超幾何分布に従う。P(型X) = K/N。K=型Xの残数、N=総残数。二項分布ではない — 各抽出でデッキが変わる。",
+    s8title: "引用文献",
+    theory: "理論値",
+    observed: "観測値",
+    combinations: "通り",
+    closedForm: "解析解",
+    monteCarlo: "モンテカルロ",
+    ttSum: "合計",
+    ttTheory: "理論",
+    ttObserved: "観測",
+    ttRolls: "回",
+  },
+};
+
 // ── Dice math ────────────────────────────────────────────────────────────────
 const COMBOS = { 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:5, 9:4, 10:3, 11:2, 12:1 };
 const THEORETICAL = {};
@@ -107,11 +294,11 @@ function dicePairsForSum(s) {
 }
 
 // ── Sample space grid — dice combos by sum ──────────────────────────────────
-function DiceGrid() {
+function DiceGrid({ label }) {
   return (
     <div style={{ marginTop: 16, marginBottom: 8 }}>
       <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>
-        ALL COMBINATIONS BY SUM
+        {label}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
         {Array.from({ length: 11 }, (_, i) => {
@@ -214,21 +401,22 @@ function chi2(counts, n) {
 }
 
 // ── Histogram tooltip ────────────────────────────────────────────────────────
-function HistTooltip({ active, payload }) {
+function HistTooltip({ active, payload, t }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   const s = d.sum;
   const pairs = dicePairsForSum(s);
   const color = sumColor(s);
+  const tt = t || ((k) => ({ ttSum: "Sum", ttTheory: "Theory", ttObserved: "Observed", ttRolls: "rolls" }[k]) || k);
   return (
     <div style={{
       background: C.panel, border: `1px solid ${C.border}`,
       padding: "10px 14px", fontFamily: F.mono, fontSize: S.base,
     }}>
-      <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>Sum: {s}</div>
-      {d.theoretical != null && <div style={{ color: C.amber }}>Theory: {(d.theoretical < 1 ? (d.theoretical * 100).toFixed(2) : d.theoretical.toFixed(2))}% ({FRACTIONS[s]})</div>}
-      {d.observed != null && <div style={{ color: C.blue }}>Observed: {d.observed} rolls ({d.obsPct}%)</div>}
+      <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>{tt("ttSum")}: {s}</div>
+      {d.theoretical != null && <div style={{ color: C.amber }}>{tt("ttTheory")}: {(d.theoretical < 1 ? (d.theoretical * 100).toFixed(2) : d.theoretical.toFixed(2))}% ({FRACTIONS[s]})</div>}
+      {d.observed != null && <div style={{ color: C.blue }}>{tt("ttObserved")}: {d.observed} {tt("ttRolls")} ({d.obsPct}%)</div>}
       <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
         {pairs.map(([a, b], j) => (
           <div key={j} style={{ fontSize: S.lg, color, lineHeight: 1 }}>
@@ -247,6 +435,11 @@ function HistTooltip({ active, payload }) {
 // MAIN APP
 // ══════════════════════════════════════════════════════════════════════════════
 function App() {
+  // Language
+  const [lang, setLang] = useState("en");
+  const t = (key) => LANG[lang]?.[key] ?? LANG.en[key] ?? key;
+  const ja = lang === "ja";
+
   // Section 3: 70-roll simulation
   const [rolls, setRolls] = useState([]);
   const [rolling, setRolling] = useState(false);
@@ -355,15 +548,11 @@ function App() {
     }), []);
 
   // ── Convergence text ──────────────────────────────────────────────────────
-  const convText = convN <= 70
-    ? "70 rolls = one game. Noisy, irregular. Some sums may not appear at all."
-    : convN <= 360
-    ? "360 rolls = ~5 games. Bell shape emerging. Peak at 7 visible, edges still rough."
-    : convN <= 1000
-    ? "1,000 rolls. Recognizably bell-shaped. Deviations shrinking."
-    : convN <= 5000
-    ? "5,000 rolls. Histogram tracks theory closely."
-    : "36,000 rolls. Nearly indistinguishable from theory.";
+  const convText = convN <= 70 ? t("s4conv70")
+    : convN <= 360 ? t("s4conv360")
+    : convN <= 1000 ? t("s4conv1000")
+    : convN <= 5000 ? t("s4conv5000")
+    : t("s4conv36000");
 
   return (
     <div style={{
@@ -373,26 +562,35 @@ function App() {
 
       {/* ══ Section 1: Header ══ */}
       <div style={{ borderBottom: `1px solid ${C.border}`, padding: "28px 32px 20px" }}>
-        <h1 style={{
-          fontFamily: F.display,
-          fontSize: S.xxl, fontWeight: 700, color: C.bright, marginBottom: 4,
-        }}>
-          The Dice Don't Care
-        </h1>
-        <div style={{ color: C.muted, fontSize: S.base, fontFamily: F.display, fontStyle: "italic", marginBottom: 14 }}>
-          Settlers of Catan Statistics
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <h1 style={{
+            fontFamily: ja ? F.body : F.display,
+            fontSize: S.xxl, fontWeight: 700, color: C.bright,
+          }}>
+            {t("title")}
+          </h1>
+          <button onClick={() => setLang(l => l === "en" ? "ja" : "en")} style={{
+            padding: "8px 14px", background: "transparent",
+            border: `1px solid ${C.border}`, color: C.muted,
+            fontSize: S.sm, borderRadius: 3, fontFamily: F.body,
+          }}>
+            {ja ? "EN" : "JP"}
+          </button>
+        </div>
+        <div style={{ color: C.muted, fontSize: S.base, fontFamily: ja ? F.body : F.display, fontStyle: ja ? "normal" : "italic", marginBottom: 14 }}>
+          {t("subtitle")}
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-          {["DICE PROBABILITY", "GAMBLER'S FALLACY", "DEVELOPMENT CARDS"].map(tag => (
+          {t("tags").map(tag => (
             <span key={tag} style={{
               padding: "3px 10px", borderRadius: 12,
               border: `1px solid ${C.amber}40`, color: C.amber,
-              fontSize: S.xs, letterSpacing: "0.1em",
+              fontSize: S.xs, letterSpacing: ja ? "0.05em" : "0.1em",
             }}>{tag}</span>
           ))}
         </div>
-        <p style={{ color: C.muted, fontSize: S.base, lineHeight: 1.7, maxWidth: 700, fontFamily: F.serif }}>
-          Every dice roll and card draw has an exact probability. Here's the math.
+        <p style={{ color: C.muted, fontSize: S.base, lineHeight: ja ? 1.7 : 1.7, maxWidth: 700, fontFamily: ja ? F.body : F.serif }}>
+          {t("headerDesc")}
         </p>
       </div>
 
@@ -404,10 +602,10 @@ function App() {
           borderRadius: 4, padding: "20px 16px", marginBottom: 24,
         }}>
           <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
-            Two-Dice Distribution
+            {t("s2title")}
           </div>
           <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
-            P(sum) for 2d6 &mdash; <InfoTip term="combinations">36 outcomes</InfoTip>
+            {t("s2sub")} &mdash; <InfoTip term="combinations">{t("s2outcomes")}</InfoTip>
           </div>
 
           <ResponsiveContainer width="100%" height={280}>
@@ -415,7 +613,7 @@ function App() {
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
               <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: S.base, fontFamily: "monospace" }} />
               <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }} domain={[0, 20]} />
-              <Tooltip content={<HistTooltip />} />
+              <Tooltip content={<HistTooltip t={t} />} />
               <Bar dataKey="prob" radius={[3, 3, 0, 0]} name="Probability">
                 {theoData.map((d, i) => <Cell key={i} fill={`${sumColor(d.sum)}90`} stroke={sumColor(d.sum)} />)}
               </Bar>
@@ -434,7 +632,7 @@ function App() {
           </div>
 
           {/* Sample space grid */}
-          <DiceGrid />
+          <DiceGrid label={t("s2combos")} />
 
           {/* Key stat callout */}
           <div style={{
@@ -442,8 +640,7 @@ function App() {
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
             fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
-            7 is <span style={{ color: C.amber, fontFamily: F.mono, fontWeight: 700 }}>6x more likely</span> than 2 or 12.
-            Every roll: <InfoTip term="robber"><span style={{ color: C.red, fontFamily: F.mono }}>1-in-6 chance of robber</span></InfoTip>.
+            {t("s2calloutPre")}<span style={{ color: C.amber, fontFamily: F.mono, fontWeight: 700 }}>{t("s2callout1")}</span>{t("s2calloutMid")}<InfoTip term="robber"><span style={{ color: C.red, fontFamily: F.mono }}>{t("s2callout2")}</span></InfoTip>。
           </div>
         </div>
 
@@ -454,13 +651,13 @@ function App() {
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>70-Roll Simulation</div>
-              <div style={{ fontSize: S.sm, color: C.muted }}>One typical game (~70 rolls)</div>
+              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>{t("s3title")}</div>
+              <div style={{ fontSize: S.sm, color: C.muted }}>{t("s3sub")}</div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {rolls.length > 0 && (
                 <span style={{ fontSize: S.base, color: C.muted, fontFamily: "monospace" }}>
-                  Roll {rolls.length} of 70
+                  {t("s3rollOf").replace("{n}", rolls.length)}
                 </span>
               )}
               <button
@@ -472,7 +669,7 @@ function App() {
                   opacity: rolling ? 0.5 : 1,
                 }}
               >
-                {rolling ? "ROLLING..." : rolls.length > 0 ? "RE-RUN" : "RUN SIMULATION"}
+                {rolling ? t("s3rolling") : rolls.length > 0 ? t("s3rerun") : t("s3run")}
               </button>
             </div>
           </div>
@@ -484,7 +681,7 @@ function App() {
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                   <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: S.base, fontFamily: "monospace" }} />
                   <YAxis tickFormatter={v => `${(v * 100).toFixed(0)}%`} tick={{ fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }} domain={[0, 'auto']} />
-                  <Tooltip content={<HistTooltip />} />
+                  <Tooltip content={<HistTooltip t={t} />} />
                   <Bar dataKey="obsFrac" radius={[3, 3, 0, 0]} name="Observed" fill={`${C.blue}70`} />
                   <Line type="monotone" dataKey="theoretical" stroke={C.amber} dot={false} strokeWidth={2} strokeDasharray="6 3" name="Theory" />
                 </ComposedChart>
@@ -519,7 +716,7 @@ function App() {
             marginTop: 14, fontFamily: F.serif,
             fontSize: S.base, color: C.muted, lineHeight: 1.7, fontStyle: "italic",
           }}>
-            70 rolls is a small sample. Shape is recognizable but noisy. Some sums may not appear; others may double expected count. Normal.
+            {t("s3note")}
           </div>
         </div>
 
@@ -529,10 +726,10 @@ function App() {
           borderRadius: 4, padding: "20px 16px", marginBottom: 24,
         }}>
           <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
-            Convergence
+            {t("s4title")}
           </div>
           <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
-            How many rolls until theory matches observation?
+            {t("s4sub")}
           </div>
 
           {/* N selector */}
@@ -556,7 +753,7 @@ function App() {
                 <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                 <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: S.base, fontFamily: "monospace" }} />
                 <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }} domain={[0, 'auto']} />
-                <Tooltip content={<HistTooltip />} />
+                <Tooltip content={<HistTooltip t={t} />} />
                 <Bar dataKey="observed" radius={[3, 3, 0, 0]} name="Observed" fill={`${C.blue}70`} />
                 <Line type="monotone" dataKey="theoretical" stroke={C.amber} dot={false} strokeWidth={2} strokeDasharray="6 3" />
               </ComposedChart>
@@ -571,16 +768,16 @@ function App() {
               padding: "8px 14px", borderRadius: 4, background: C.subtle,
               fontFamily: F.mono, fontSize: S.base,
             }}>
-              <InfoTip term="chi2"><span style={{ color: C.muted }}>chi-squared</span></InfoTip>
+              <InfoTip term="chi2"><span style={{ color: C.muted }}>{t("s4chi")}</span></InfoTip>
               <span style={{ color: convChi2 < 18.3 ? C.green : C.red, fontWeight: 700, marginLeft: 8 }}>
                 {convChi2.toFixed(2)}
               </span>
-              <span style={{ color: C.muted, marginLeft: 8, fontSize: 10 }}>
-                {convChi2 < 18.3 ? "no significant deviation" : "significant deviation from theory"}
+              <span style={{ color: C.muted, marginLeft: 8, fontSize: S.xs }}>
+                {convChi2 < 18.3 ? t("s4nodev") : t("s4sigdev")}
               </span>
             </div>
-            <div style={{ fontSize: S.sm, color: C.muted, fontFamily: "monospace" }}>
-              n = {convN.toLocaleString()} rolls
+            <div style={{ fontSize: S.sm, color: C.muted, fontFamily: F.mono }}>
+              n = {convN.toLocaleString()} {t("s4rolls")}
             </div>
           </div>
 
@@ -597,7 +794,7 @@ function App() {
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
             fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
-            <span style={{ color: C.amber, fontWeight: 700, fontFamily: F.mono }}>Clean bell curve: ~360 rolls</span> (~5 games).
+            <span style={{ color: C.amber, fontWeight: 700, fontFamily: F.mono }}>{t("s4callout")}</span>{t("s4calloutSuffix")}
           </div>
         </div>
 
@@ -607,10 +804,10 @@ function App() {
           borderRadius: 4, padding: "20px 16px", marginBottom: 24,
         }}>
           <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
-            The <InfoTip term="gambler">Gambler's Fallacy</InfoTip>
+            <InfoTip term="gambler">{t("s5title")}</InfoTip>
           </div>
           <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
-            Streaks don't change the next roll
+            {t("s5sub")}
           </div>
 
           {/* Streak display */}
@@ -628,7 +825,7 @@ function App() {
             ))}
             {streak.length === 0 && (
               <div style={{ fontSize: S.sm, color: C.muted, fontStyle: "italic", paddingTop: 6 }}>
-                No rolls yet.
+                {t("s5noRolls")}
               </div>
             )}
           </div>
@@ -639,17 +836,17 @@ function App() {
               padding: "10px 18px", background: "transparent",
               border: `1px solid ${C.green}`, color: C.green,
               fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
-            }}>ADD ROLL</button>
+            }}>{t("s5addRoll")}</button>
             <button onClick={addNon7} style={{
               padding: "10px 18px", background: "transparent",
               border: `1px solid ${C.red}`, color: C.red,
               fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
-            }}>STREAK: NO 7</button>
+            }}>{t("s5streak")}</button>
             <button onClick={() => setStreak([])} style={{
               padding: "10px 18px", background: "transparent",
               border: `1px solid ${C.border}`, color: C.muted,
               fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
-            }}>RESET</button>
+            }}>{t("s5reset")}</button>
           </div>
 
           {/* Non-7 streak counter */}
@@ -661,7 +858,7 @@ function App() {
             }
             return non7 > 0 ? (
               <div style={{ fontSize: S.sm, color: C.red, marginBottom: 12, fontFamily: "monospace" }}>
-                Current streak without a 7: {non7} roll{non7 > 1 ? "s" : ""}
+                {t("s5streakCount").replace("{n}", non7)}
               </div>
             ) : null;
           })()}
@@ -673,13 +870,13 @@ function App() {
             textAlign: "center", marginBottom: 16,
           }}>
             <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>
-              P(NEXT ROLL = 7)
+              {t("s5pLabel")}
             </div>
-            <div style={{ fontSize: 36, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>
+            <div style={{ fontSize: 36, fontWeight: 700, color: C.amber, fontFamily: F.mono }}>
               16.67%
             </div>
-            <div style={{ fontSize: S.base, color: C.red, marginTop: 8, fontFamily: F.serif }}>
-              After any number of non-7 rolls, P(7) stays 16.67%.
+            <div style={{ fontSize: S.base, color: C.red, marginTop: 8, fontFamily: ja ? F.body : F.serif }}>
+              {t("s5pNote")}
             </div>
           </div>
 
@@ -689,24 +886,24 @@ function App() {
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
               borderRadius: 4, padding: "14px 16px",
             }}>
-              <div style={{ fontSize: S.sm, color: C.red, letterSpacing: "0.1em", marginBottom: 8 }}>INTUITION</div>
-              <div style={{ fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
-                "It's due for a 7"
+              <div style={{ fontSize: S.sm, color: C.red, letterSpacing: "0.1em", marginBottom: 8 }}>{t("s5intuition")}</div>
+              <div style={{ fontFamily: ja ? F.body : F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
+                {t("s5due")}
               </div>
               <div style={{ fontFamily: F.mono, fontSize: S.lg, color: C.red, fontWeight: 700 }}>
-                Implied P ~ 40% (wrong)
+                {t("s5implied")}
               </div>
             </div>
             <div style={{
               background: `${C.green}08`, border: `1px solid ${C.green}25`,
               borderRadius: 4, padding: "14px 16px",
             }}>
-              <div style={{ fontSize: S.sm, color: C.green, letterSpacing: "0.1em", marginBottom: 8 }}>REALITY</div>
-              <div style={{ fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
-                <InfoTip term="independent">Independent trials</InfoTip> &mdash; no memory
+              <div style={{ fontSize: S.sm, color: C.green, letterSpacing: "0.1em", marginBottom: 8 }}>{t("s5reality")}</div>
+              <div style={{ fontFamily: ja ? F.body : F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
+                <InfoTip term="independent">{t("s5independent")}</InfoTip>{t("s5noMemory")}
               </div>
               <div style={{ fontFamily: F.mono, fontSize: S.lg, color: C.green, fontWeight: 700 }}>
-                P = 16.67%, always
+                {t("s5always")}
               </div>
             </div>
           </div>
@@ -719,20 +916,20 @@ function App() {
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>Development Cards</div>
+              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>{t("s6title")}</div>
               <div style={{ fontSize: S.sm, color: C.muted }}>
-                <InfoTip term="hypergeometric">Draw without replacement</InfoTip> &mdash; {deckTotal} cards
+                <InfoTip term="hypergeometric">{t("s6sub")}</InfoTip> &mdash; {deckTotal}{t("s6cards")}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <span style={{ fontSize: S.base, fontFamily: F.mono, color: C.muted }}>
-                {deckTotal} / 25 remaining
+                {deckTotal} / 25 {t("s6remaining")}
               </span>
               <button onClick={resetDeck} style={{
                 padding: "10px 18px", background: "transparent",
                 border: `1px solid ${C.border}`, color: C.muted,
                 fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
-              }}>RESET DECK</button>
+              }}>{t("s6resetDeck")}</button>
             </div>
           </div>
 
@@ -785,7 +982,7 @@ function App() {
                     fontSize: S.xs, letterSpacing: "0.06em", borderRadius: 2,
                     opacity: count <= 0 ? 0.4 : 1, width: "100%",
                   }}>
-                    + DRAW
+                    {t("s6draw")}
                   </button>
                 </div>
               );
@@ -799,7 +996,7 @@ function App() {
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
               fontSize: S.base, color: C.red, fontFamily: F.mono,
             }}>
-              <InfoTip term="largestArmy">Largest Army</InfoTip> contested &mdash; {knightsLeft} knight{knightsLeft > 1 ? "s" : ""} left
+              <InfoTip term="largestArmy">{t("s6knightWarning")}</InfoTip> {t("s6knightContested").replace("{n}", knightsLeft)}
             </div>
           )}
           {knightsLeft === 0 && (
@@ -808,7 +1005,7 @@ function App() {
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
               fontSize: S.base, color: C.red, fontFamily: F.mono,
             }}>
-              All Knights drawn. <InfoTip term="largestArmy">Largest Army</InfoTip> locked.
+              {t("s6knightLocked").replace("{la}", "").replace("  ", " ")}<InfoTip term="largestArmy">{t("s6knightWarning")}</InfoTip>
             </div>
           )}
 
@@ -818,8 +1015,7 @@ function App() {
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
             fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
-            First draw: <span style={{ color: C.knight, fontFamily: F.mono }}>56% Knight</span>, <span style={{ color: C.monopoly, fontFamily: F.mono }}>8% Monopoly</span>.
-            As Knights get played, the gap closes.
+            {t("s6insight")}<span style={{ color: C.knight, fontFamily: F.mono }}>{t("s6insightKnight")}</span>、<span style={{ color: C.monopoly, fontFamily: F.mono }}>{t("s6insightMonopoly")}</span>{t("s6insightEnd")}
           </div>
         </div>
 
@@ -837,33 +1033,17 @@ function App() {
             }}
           >
             <span style={{ fontSize: S.sm, letterSpacing: "0.12em", color: C.amber }}>
-              MATHEMATICAL FOUNDATION
+              {t("s7title")}
             </span>
-            <span style={{ fontSize: S.sm, color: C.muted }}>{proofsOpen ? "collapse" : "expand"}</span>
+            <span style={{ fontSize: S.sm, color: C.muted }}>{proofsOpen ? t("s7collapse") : t("s7expand")}</span>
           </button>
           {proofsOpen && (
             <div style={{ padding: "16px 20px" }}>
               {[
-                {
-                  id: "STEP 1 — Combinatorics of Two Dice",
-                  claim: "Two fair dice produce a triangular distribution on {2...12}. Combinations per sum: min(s-1, 13-s) out of 36. Pyramid: 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1.",
-                  source: "Feller, W. An Introduction to Probability Theory, Vol. I, Ch. I (1950). Wiley.",
-                },
-                {
-                  id: "STEP 2 — Law of Large Numbers",
-                  claim: "Sample mean of i.i.d. variables converges to population mean as n grows. Observed frequency approaches theoretical probability. Rate: O(1/sqrt(n)).",
-                  source: "Ibid., Ch. X. The Strong Law of Large Numbers.",
-                },
-                {
-                  id: "STEP 3 — Independence of Dice Rolls",
-                  claim: "Independent iff P(A and B) = P(A) x P(B). Dice satisfy this physically. P(7 | any prior history) = P(7) = 1/6.",
-                  source: "Ibid., Ch. V. Conditional Probability and Independence.",
-                },
-                {
-                  id: "STEP 4 — Hypergeometric Distribution",
-                  claim: "Drawing without replacement: hypergeometric. P(type X) = K/N where K = remaining of type X, N = total remaining. Not binomial — each draw changes deck composition.",
-                  source: "Feller, W. An Introduction to Probability Theory, Vol. I, Ch. II (1950). Hypergeometric distribution.",
-                },
+                { id: t("s7step1"), claim: t("s7claim1"), source: "Feller, Vol. I, Ch. I (1950)." },
+                { id: t("s7step2"), claim: t("s7claim2"), source: "Ibid., Ch. X." },
+                { id: t("s7step3"), claim: t("s7claim3"), source: "Ibid., Ch. V." },
+                { id: t("s7step4"), claim: t("s7claim4"), source: "Ibid., Ch. II." },
               ].map(({ id, claim, source }) => (
                 <div key={id} style={{
                   marginBottom: 16, paddingLeft: 14,
@@ -892,7 +1072,7 @@ function App() {
           paddingTop: 16, borderTop: `1px solid ${C.border}`,
           fontSize: S.sm, color: C.muted, lineHeight: 2,
         }}>
-          <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>CITATIONS</div>
+          <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>{t("s8title")}</div>
           <div>[1] Feller, W. (1950). <em>An Introduction to Probability Theory and Its Applications,</em> Vol. I. Wiley.</div>
           <div>[2] Kahneman, D. (2011). <em>Thinking, Fast and Slow.</em> Farrar, Straus and Giroux. Ch. 10: The Law of Small Numbers.</div>
           <div>[3] Catan GmbH. <em>CATAN Official Rulebook,</em> 5th Ed. Deck: 14 Knights, 5 VPs, 2 Road Building, 2 Year of Plenty, 2 Monopoly.</div>
