@@ -19,9 +19,25 @@
   ::-webkit-scrollbar-thumb { background: #162035; border-radius: 2px; }
   input[type=range] { accent-color: #f59e0b; cursor: pointer; }
   button { cursor: pointer; }
+  .nav-bar {
+    display: flex; gap: 0; border-bottom: 1px solid #162035;
+    background: #0c1221; padding: 0 32px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .nav-bar a {
+    padding: 10px 20px; font-size: 11px; letter-spacing: 0.08em;
+    text-decoration: none; color: #475569; border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .nav-bar a:hover { color: #cbd5e1; }
+  .nav-bar a.active { color: #f59e0b; border-bottom-color: #f59e0b; }
 </style>
 </head>
 <body>
+<nav class="nav-bar">
+  <a href="index.html" class="active">GAMBLER'S RUIN</a>
+  <a href="catan.html">CATAN STATISTICS</a>
+</nav>
 <div id="root"></div>
 
 <script>

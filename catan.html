@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:,">
+<title>The Dice Don't Care — Catan Statistics</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/prop-types@15/prop-types.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts@2.15.3/umd/Recharts.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #070b14; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #070b14; }
+  ::-webkit-scrollbar-thumb { background: #162035; border-radius: 2px; }
+  input[type=range] { accent-color: #f59e0b; cursor: pointer; }
+  button { cursor: pointer; }
+  .nav-bar {
+    display: flex; gap: 0; border-bottom: 1px solid #162035;
+    background: #0c1221; padding: 0 32px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .nav-bar a {
+    padding: 10px 20px; font-size: 11px; letter-spacing: 0.08em;
+    text-decoration: none; color: #475569; border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .nav-bar a:hover { color: #cbd5e1; }
+  .nav-bar a.active { color: #f59e0b; border-bottom-color: #f59e0b; }
+</style>
+</head>
+<body>
+<nav class="nav-bar">
+  <a href="index.html">GAMBLER'S RUIN</a>
+  <a href="catan.html" class="active">CATAN STATISTICS</a>
+</nav>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+const { BarChart, Bar, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } = Recharts;
+
+// ── Palette ──────────────────────────────────────────────────────────────────
+const C = {
+  bg: "#070b14", panel: "#0c1221", border: "#162035",
+  amber: "#f59e0b", green: "#10b981", red: "#ef4444",
+  blue: "#60a5fa", text: "#cbd5e1", muted: "#475569",
+  bright: "#f1f5f9", subtle: "#1e2d47",
+  knight: "#60a5fa", vp: "#f59e0b", road: "#10b981",
+  plenty: "#a78bfa", monopoly: "#ef4444",
+};
+
+// ── Dice math ────────────────────────────────────────────────────────────────
+const COMBOS = { 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:5, 9:4, 10:3, 11:2, 12:1 };
+const THEORETICAL = {};
+for (let s = 2; s <= 12; s++) THEORETICAL[s] = COMBOS[s] / 36;
+
+const FRACTIONS = { 2:"1/36", 3:"2/36", 4:"3/36", 5:"4/36", 6:"5/36", 7:"6/36", 8:"5/36", 9:"4/36", 10:"3/36", 11:"2/36", 12:"1/36" };
+
+function rollDice() { return Math.ceil(Math.random() * 6) + Math.ceil(Math.random() * 6); }
+
+function sumColor(s) {
+  if (s === 7) return C.amber;
+  if (s === 6 || s === 8) return C.blue;
+  if (s === 2 || s === 12) return C.red;
+  return C.muted;
+}
+
+// ── Sample space grid ────────────────────────────────────────────────────────
+function DiceGrid() {
+  const cells = [];
+  for (let a = 1; a <= 6; a++) {
+    for (let b = 1; b <= 6; b++) {
+      const s = a + b;
+      cells.push({ a, b, s });
+    }
+  }
+  return (
+    <div style={{ marginTop: 16, marginBottom: 8 }}>
+      <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>
+        FULL SAMPLE SPACE — 36 EQUALLY LIKELY OUTCOMES
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 3, maxWidth: 300 }}>
+        {cells.map(({ a, b, s }, i) => (
+          <div key={i} style={{
+            width: "100%", aspectRatio: "1", display: "flex",
+            alignItems: "center", justifyContent: "center",
+            background: `${sumColor(s)}20`, border: `1px solid ${sumColor(s)}40`,
+            borderRadius: 3, fontSize: 11, fontFamily: "monospace",
+            color: sumColor(s),
+          }}>
+            {s}
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 10, color: C.muted, marginTop: 6 }}>
+        Row = die 1 (1-6), Column = die 2 (1-6). Color = sum.
+      </div>
+    </div>
+  );
+}
+
+// ── InfoTip ──────────────────────────────────────────────────────────────────
+const TIPS = {
+  combinations: "Two standard dice produce 36 equally likely outcomes (6 x 6). The number of ways to make each sum determines its probability.",
+  independent: "Each dice roll is independent — the dice have no memory. Previous rolls cannot influence future outcomes. This is a fundamental axiom of probability.",
+  hypergeometric: "Drawing cards without replacement follows the hypergeometric distribution: P(draw type X) = (cards of type X remaining) / (total cards remaining).",
+  gambler: "The false belief that past random outcomes affect future ones. Named after the Monte Carlo Casino incident of 1913, where black came up 26 times in a row at roulette.",
+  vp: "Victory Point cards are hidden until the holder wins — they are never played face-up. This means you cannot track them out of the deck by observation alone.",
+  largestArmy: "Requires 3+ Knights played. If Knights are depleted from the deck, no new player can contest it.",
+  chi2: "Chi-squared goodness-of-fit measures how closely observed frequencies match expected frequencies. Lower values = better fit. Below ~18.3 (for 10 degrees of freedom at p=0.05) means no significant deviation from theory.",
+  robber: "Rolling a 7 activates the robber. Any player with more than 7 resource cards must discard half. The roller then moves the robber and steals one card.",
+};
+
+function InfoTip({ term, children }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const desc = TIPS[term];
+  if (!desc) return children;
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
+  return (
+    <span ref={ref} style={{ position: "relative", display: "inline" }}>
+      <span
+        onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+        onTouchStart={(e) => { e.preventDefault(); setOpen(o => !o); }}
+        style={{ borderBottom: `1px dotted ${C.muted}`, cursor: "help" }}
+      >{children}</span>
+      {open && (
+        <span style={{
+          position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
+          transform: "translateX(-50%)", width: 280, padding: "10px 12px",
+          background: "#1a2540", border: `1px solid ${C.border}`,
+          borderRadius: 6, fontSize: 11, lineHeight: 1.6,
+          color: C.text, zIndex: 1000, pointerEvents: "auto",
+          fontFamily: "'Source Serif 4', serif", fontWeight: 300,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+        }}>
+          {desc}
+          <span style={{
+            position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)",
+            width: 0, height: 0,
+            borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
+            borderTop: "6px solid #1a2540",
+          }} />
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ── Dev card constants ───────────────────────────────────────────────────────
+const DECK_INIT = { Knight: 14, "Victory Point": 5, "Road Building": 2, "Year of Plenty": 2, Monopoly: 2 };
+const CARD_COLORS = { Knight: C.knight, "Victory Point": C.vp, "Road Building": C.road, "Year of Plenty": C.plenty, Monopoly: C.monopoly };
+
+// ── Chi-squared ──────────────────────────────────────────────────────────────
+function chi2(counts, n) {
+  let stat = 0;
+  for (let s = 2; s <= 12; s++) {
+    const expected = THEORETICAL[s] * n;
+    const observed = counts[s] || 0;
+    if (expected > 0) stat += Math.pow(observed - expected, 2) / expected;
+  }
+  return stat;
+}
+
+// ── Histogram tooltip ────────────────────────────────────────────────────────
+function HistTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  return (
+    <div style={{
+      background: C.panel, border: `1px solid ${C.border}`,
+      padding: "8px 12px", fontFamily: "monospace", fontSize: 11,
+    }}>
+      <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 4 }}>Sum: {d.sum}</div>
+      {d.theoretical != null && <div style={{ color: C.amber }}>Theory: {(d.theoretical * 100).toFixed(2)}% ({FRACTIONS[d.sum]})</div>}
+      {d.observed != null && <div style={{ color: C.blue }}>Observed: {d.observed} rolls ({d.obsPct}%)</div>}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════════════════════════════════════
+function App() {
+  // Section 3: 70-roll simulation
+  const [rolls, setRolls] = useState([]);
+  const [rolling, setRolling] = useState(false);
+  const rollRef = useRef(null);
+
+  // Section 4: convergence slider
+  const [convN, setConvN] = useState(70);
+  const [convCounts, setConvCounts] = useState(null);
+
+  // Section 5: gambler's fallacy
+  const [streak, setStreak] = useState([]);
+
+  // Section 6: dev cards
+  const [deck, setDeck] = useState({ ...DECK_INIT });
+
+  // Section 7: proof accordion
+  const [proofsOpen, setProofsOpen] = useState(false);
+
+  // ── Section 3: animate 70 rolls ──────────────────────────────────────────
+  const runSim = useCallback(() => {
+    if (rollRef.current) clearInterval(rollRef.current);
+    setRolls([]);
+    setRolling(true);
+    let count = 0;
+    const allRolls = [];
+    rollRef.current = setInterval(() => {
+      allRolls.push(rollDice());
+      count++;
+      setRolls([...allRolls]);
+      if (count >= 70) {
+        clearInterval(rollRef.current);
+        rollRef.current = null;
+        setRolling(false);
+      }
+    }, 25);
+  }, []);
+
+  useEffect(() => () => { if (rollRef.current) clearInterval(rollRef.current); }, []);
+
+  const rollCounts = useMemo(() => {
+    const c = {};
+    for (let s = 2; s <= 12; s++) c[s] = 0;
+    rolls.forEach(r => c[r]++);
+    return c;
+  }, [rolls]);
+
+  const rollData = useMemo(() => {
+    const n = rolls.length || 1;
+    return Array.from({ length: 11 }, (_, i) => {
+      const sum = i + 2;
+      return {
+        sum, theoretical: THEORETICAL[sum],
+        observed: rollCounts[sum] || 0,
+        obsPct: ((rollCounts[sum] || 0) / n * 100).toFixed(1),
+        obsFrac: (rollCounts[sum] || 0) / n,
+      };
+    });
+  }, [rollCounts, rolls.length]);
+
+  // ── Section 4: convergence ────────────────────────────────────────────────
+  useEffect(() => {
+    const c = {};
+    for (let s = 2; s <= 12; s++) c[s] = 0;
+    for (let i = 0; i < convN; i++) c[rollDice()]++;
+    setConvCounts(c);
+  }, [convN]);
+
+  const convData = useMemo(() => {
+    if (!convCounts) return [];
+    return Array.from({ length: 11 }, (_, i) => {
+      const sum = i + 2;
+      return {
+        sum,
+        theoretical: THEORETICAL[sum] * 100,
+        observed: (convCounts[sum] || 0) / convN * 100,
+      };
+    });
+  }, [convCounts, convN]);
+
+  const convChi2 = convCounts ? chi2(convCounts, convN) : 0;
+
+  // ── Section 5: streak ─────────────────────────────────────────────────────
+  const addRoll = useCallback(() => setStreak(s => [...s, rollDice()]), []);
+  const addNon7 = useCallback(() => {
+    let r;
+    do { r = rollDice(); } while (r === 7);
+    setStreak(s => [...s, r]);
+  }, []);
+
+  // ── Section 6: deck ──────────────────────────────────────────────────────
+  const deckTotal = Object.values(deck).reduce((a, b) => a + b, 0);
+  const drawCard = useCallback((type) => {
+    setDeck(d => {
+      if (d[type] <= 0) return d;
+      return { ...d, [type]: d[type] - 1 };
+    });
+  }, []);
+  const resetDeck = useCallback(() => setDeck({ ...DECK_INIT }), []);
+  const knightsLeft = deck.Knight;
+
+  // ── Theoretical data for Section 2 ────────────────────────────────────────
+  const theoData = useMemo(() =>
+    Array.from({ length: 11 }, (_, i) => {
+      const sum = i + 2;
+      return { sum, prob: THEORETICAL[sum] * 100, frac: FRACTIONS[sum] };
+    }), []);
+
+  // ── Convergence text ──────────────────────────────────────────────────────
+  const convText = convN <= 70
+    ? "At 70 rolls (one game), the histogram is noisy and irregular. Individual sums may be missing entirely."
+    : convN <= 360
+    ? "At 360 rolls (~5 games), the bell shape starts to emerge. The peak at 7 is visible but edges are still rough."
+    : convN <= 1000
+    ? "At 1,000 rolls, the distribution is recognizably bell-shaped. Deviations from theory are shrinking."
+    : convN <= 5000
+    ? "At 5,000 rolls, the histogram closely tracks the theoretical curve. The Law of Large Numbers is doing its work."
+    : "At 36,000 rolls (1,000 per combination), the histogram is nearly indistinguishable from theory. Each sum has been sampled ~1,000 times.";
+
+  return (
+    <div style={{
+      background: C.bg, minHeight: "100vh", color: C.text,
+      fontFamily: "'JetBrains Mono', monospace",
+    }}>
+
+      {/* ══ Section 1: Header ══ */}
+      <div style={{ borderBottom: `1px solid ${C.border}`, padding: "28px 32px 20px" }}>
+        <h1 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: 24, fontWeight: 700, color: C.bright, marginBottom: 4,
+        }}>
+          The Dice Don't Care
+        </h1>
+        <div style={{ color: C.muted, fontSize: 12, fontFamily: "'Playfair Display', serif", fontStyle: "italic", marginBottom: 14 }}>
+          A statistical anatomy of Settlers of Catan
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          {["DICE PROBABILITY", "GAMBLER'S FALLACY", "DEVELOPMENT CARDS"].map(tag => (
+            <span key={tag} style={{
+              padding: "3px 10px", borderRadius: 12,
+              border: `1px solid ${C.amber}40`, color: C.amber,
+              fontSize: 9, letterSpacing: "0.1em",
+            }}>{tag}</span>
+          ))}
+        </div>
+        <p style={{ color: C.muted, fontSize: 12, lineHeight: 1.7, maxWidth: 700, fontFamily: "'Source Serif 4', serif" }}>
+          Every number on the board, every card you buy, and every roll you're waiting on has an exact probability.
+          Here's what the math actually says.
+        </p>
+      </div>
+
+      <div style={{ padding: "24px 32px", maxWidth: 1000, margin: "0 auto" }}>
+
+        {/* ══ Section 2: Theoretical Bell Curve ══ */}
+        <div style={{
+          background: C.panel, border: `1px solid ${C.border}`,
+          borderRadius: 4, padding: "20px 16px", marginBottom: 24,
+        }}>
+          <div style={{ fontSize: 12, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
+            The Theoretical Bell Curve
+          </div>
+          <div style={{ fontSize: 10, color: C.muted, marginBottom: 16 }}>
+            Exact probability of each sum (2-12) from two six-sided dice &mdash; <InfoTip term="combinations">36 combinations</InfoTip>
+          </div>
+
+          <ResponsiveContainer width="100%" height={280}>
+            <ComposedChart data={theoData} margin={{ left: 0, right: 16, top: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }} />
+              <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }} domain={[0, 20]} />
+              <Tooltip content={<HistTooltip />} />
+              <Bar dataKey="prob" radius={[3, 3, 0, 0]} name="Probability">
+                {theoData.map((d, i) => <Cell key={i} fill={`${sumColor(d.sum)}90`} stroke={sumColor(d.sum)} />)}
+              </Bar>
+              <Line type="monotone" dataKey="prob" stroke={C.amber} dot={false} strokeWidth={2} strokeDasharray="6 3" />
+            </ComposedChart>
+          </ResponsiveContainer>
+
+          {/* Fraction labels */}
+          <div style={{ display: "flex", justifyContent: "space-around", margin: "8px 0 16px", padding: "0 30px" }}>
+            {theoData.map(d => (
+              <div key={d.sum} style={{ textAlign: "center", fontSize: 9, fontFamily: "monospace" }}>
+                <div style={{ color: sumColor(d.sum) }}>{d.frac}</div>
+                <div style={{ color: C.muted }}>{d.prob.toFixed(1)}%</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Sample space grid */}
+          <DiceGrid />
+
+          {/* Key stat callout */}
+          <div style={{
+            marginTop: 16, padding: "12px 16px", borderRadius: 4,
+            background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
+            fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
+          }}>
+            7 is <span style={{ color: C.amber, fontFamily: "monospace", fontWeight: 700 }}>6x more likely</span> than 2 or 12.
+            On any given roll, there is a <InfoTip term="robber"><span style={{ color: C.red, fontFamily: "monospace" }}>1-in-6 chance</span></InfoTip> the robber moves.
+          </div>
+        </div>
+
+        {/* ══ Section 3: 70-Roll Simulation ══ */}
+        <div style={{
+          background: C.panel, border: `1px solid ${C.border}`,
+          borderRadius: 4, padding: "20px 16px", marginBottom: 24,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 12, color: C.bright, fontWeight: 500 }}>The 70-Roll Simulation</div>
+              <div style={{ fontSize: 10, color: C.muted }}>A typical 4-player game produces ~70 rolls</div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {rolls.length > 0 && (
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>
+                  Roll {rolls.length} of 70
+                </span>
+              )}
+              <button
+                onClick={runSim} disabled={rolling}
+                style={{
+                  padding: "5px 14px", background: "transparent",
+                  border: `1px solid ${C.amber}`, color: C.amber,
+                  fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+                  opacity: rolling ? 0.5 : 1,
+                }}
+              >
+                {rolling ? "ROLLING..." : rolls.length > 0 ? "RE-RUN" : "RUN SIMULATION"}
+              </button>
+            </div>
+          </div>
+
+          {rolls.length > 0 && (
+            <>
+              <ResponsiveContainer width="100%" height={240}>
+                <ComposedChart data={rollData} margin={{ left: 0, right: 16, top: 8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }} />
+                  <YAxis tickFormatter={v => `${(v * 100).toFixed(0)}%`} tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }} domain={[0, 'auto']} />
+                  <Tooltip content={<HistTooltip />} />
+                  <Bar dataKey="obsFrac" radius={[3, 3, 0, 0]} name="Observed" fill={`${C.blue}70`} />
+                  <Line type="monotone" dataKey="theoretical" stroke={C.amber} dot={false} strokeWidth={2} strokeDasharray="6 3" name="Theory" />
+                </ComposedChart>
+              </ResponsiveContainer>
+
+              {/* Residuals */}
+              {!rolling && (
+                <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 6 }}>
+                  {rollData.map(d => {
+                    const expected = (THEORETICAL[d.sum] * 70).toFixed(1);
+                    const diff = d.observed - parseFloat(expected);
+                    const diffStr = diff >= 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
+                    return (
+                      <div key={d.sum} style={{
+                        padding: "6px 10px", borderRadius: 3,
+                        background: `${sumColor(d.sum)}08`, border: `1px solid ${sumColor(d.sum)}20`,
+                        fontSize: 10, fontFamily: "monospace",
+                      }}>
+                        <span style={{ color: sumColor(d.sum) }}>{d.sum}:</span>
+                        <span style={{ color: C.text }}> {d.observed}</span>
+                        <span style={{ color: C.muted }}> (exp {expected})</span>
+                        <span style={{ color: diff > 0 ? C.green : diff < 0 ? C.red : C.muted }}> {diffStr}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          <div style={{
+            marginTop: 14, fontFamily: "'Source Serif 4', serif",
+            fontSize: 12, color: C.muted, lineHeight: 1.7, fontStyle: "italic",
+          }}>
+            Seventy rolls is a small sample. The shape is recognizable but noisy &mdash; some numbers may never appear,
+            others may double their expected count. This is normal.
+          </div>
+        </div>
+
+        {/* ══ Section 4: Convergence ══ */}
+        <div style={{
+          background: C.panel, border: `1px solid ${C.border}`,
+          borderRadius: 4, padding: "20px 16px", marginBottom: 24,
+        }}>
+          <div style={{ fontSize: 12, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
+            How Many Rolls Until the Bell Curve Looks Clean?
+          </div>
+          <div style={{ fontSize: 10, color: C.muted, marginBottom: 16 }}>
+            The Law of Large Numbers in action &mdash; convergence to the theoretical distribution
+          </div>
+
+          {/* N selector */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+            {[70, 360, 1000, 5000, 36000].map(n => (
+              <button key={n} onClick={() => setConvN(n)} style={{
+                padding: "6px 14px", borderRadius: 3,
+                background: convN === n ? `${C.amber}20` : "transparent",
+                border: `1px solid ${convN === n ? C.amber : C.border}`,
+                color: convN === n ? C.amber : C.muted,
+                fontSize: 11, fontFamily: "monospace",
+              }}>
+                {n.toLocaleString()}
+              </button>
+            ))}
+          </div>
+
+          {convData.length > 0 && (
+            <ResponsiveContainer width="100%" height={240}>
+              <ComposedChart data={convData} margin={{ left: 0, right: 16, top: 8, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }} />
+                <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }} domain={[0, 'auto']} />
+                <Tooltip content={<HistTooltip />} />
+                <Bar dataKey="observed" radius={[3, 3, 0, 0]} name="Observed" fill={`${C.blue}70`} />
+                <Line type="monotone" dataKey="theoretical" stroke={C.amber} dot={false} strokeWidth={2} strokeDasharray="6 3" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+
+          {/* Chi-squared */}
+          <div style={{
+            marginTop: 12, display: "flex", gap: 16, alignItems: "baseline", flexWrap: "wrap",
+          }}>
+            <div style={{
+              padding: "8px 14px", borderRadius: 4, background: C.subtle,
+              fontFamily: "monospace", fontSize: 12,
+            }}>
+              <InfoTip term="chi2"><span style={{ color: C.muted }}>chi-squared</span></InfoTip>
+              <span style={{ color: convChi2 < 18.3 ? C.green : C.red, fontWeight: 700, marginLeft: 8 }}>
+                {convChi2.toFixed(2)}
+              </span>
+              <span style={{ color: C.muted, marginLeft: 8, fontSize: 10 }}>
+                {convChi2 < 18.3 ? "no significant deviation" : "significant deviation from theory"}
+              </span>
+            </div>
+            <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>
+              n = {convN.toLocaleString()} rolls
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: 12, fontFamily: "'Source Serif 4', serif",
+            fontSize: 12, color: C.muted, lineHeight: 1.7, fontStyle: "italic",
+          }}>
+            {convText}
+          </div>
+
+          {/* Callout */}
+          <div style={{
+            marginTop: 14, padding: "12px 16px", borderRadius: 4,
+            background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
+            fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
+          }}>
+            <span style={{ color: C.amber, fontWeight: 700, fontFamily: "monospace" }}>Minimum for a visually clean bell curve: ~360 rolls</span> (~5 full games).
+            Probability theory needs patience.
+          </div>
+        </div>
+
+        {/* ══ Section 5: Gambler's Fallacy ══ */}
+        <div style={{
+          background: C.panel, border: `1px solid ${C.border}`,
+          borderRadius: 4, padding: "20px 16px", marginBottom: 24,
+        }}>
+          <div style={{ fontSize: 12, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
+            The <InfoTip term="gambler">Gambler's Fallacy</InfoTip>
+          </div>
+          <div style={{ fontSize: 10, color: C.muted, marginBottom: 16 }}>
+            Why streaks do not change the next roll's probability
+          </div>
+
+          {/* Streak display */}
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12, minHeight: 32 }}>
+            {streak.map((r, i) => (
+              <div key={i} style={{
+                width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
+                background: r === 7 ? `${C.amber}30` : C.subtle,
+                border: `1px solid ${r === 7 ? C.amber : C.border}`,
+                borderRadius: 3, fontSize: 11, fontFamily: "monospace",
+                color: r === 7 ? C.amber : C.text,
+              }}>
+                {r}
+              </div>
+            ))}
+            {streak.length === 0 && (
+              <div style={{ fontSize: 10, color: C.muted, fontStyle: "italic", paddingTop: 6 }}>
+                No rolls yet. Click a button below to start.
+              </div>
+            )}
+          </div>
+
+          {/* Buttons */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            <button onClick={addRoll} style={{
+              padding: "5px 14px", background: "transparent",
+              border: `1px solid ${C.green}`, color: C.green,
+              fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+            }}>ADD ROLL</button>
+            <button onClick={addNon7} style={{
+              padding: "5px 14px", background: "transparent",
+              border: `1px solid ${C.red}`, color: C.red,
+              fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+            }}>STREAK: NO 7</button>
+            <button onClick={() => setStreak([])} style={{
+              padding: "5px 14px", background: "transparent",
+              border: `1px solid ${C.border}`, color: C.muted,
+              fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+            }}>RESET</button>
+          </div>
+
+          {/* Non-7 streak counter */}
+          {streak.length > 0 && (() => {
+            let non7 = 0;
+            for (let i = streak.length - 1; i >= 0; i--) {
+              if (streak[i] === 7) break;
+              non7++;
+            }
+            return non7 > 0 ? (
+              <div style={{ fontSize: 10, color: C.red, marginBottom: 12, fontFamily: "monospace" }}>
+                Current streak without a 7: {non7} roll{non7 > 1 ? "s" : ""}
+              </div>
+            ) : null;
+          })()}
+
+          {/* Probability readout — never changes */}
+          <div style={{
+            padding: "16px 20px", borderRadius: 4,
+            background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
+            textAlign: "center", marginBottom: 16,
+          }}>
+            <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>
+              P(NEXT ROLL = 7)
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>
+              16.67%
+            </div>
+            <div style={{ fontSize: 11, color: C.red, marginTop: 8, fontFamily: "'Source Serif 4', serif" }}>
+              Even after {streak.filter(r => r !== 7).length > 10 ? streak.filter(r => r !== 7).length : "20"} rolls with no 7,
+              the next roll's probability is identical.
+            </div>
+          </div>
+
+          {/* Two-column comparison */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            <div style={{
+              background: `${C.red}08`, border: `1px solid ${C.red}25`,
+              borderRadius: 4, padding: "14px 16px",
+            }}>
+              <div style={{ fontSize: 10, color: C.red, letterSpacing: "0.1em", marginBottom: 8 }}>WHAT PEOPLE BELIEVE</div>
+              <div style={{ fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
+                "It's due for a 7"
+              </div>
+              <div style={{ fontFamily: "monospace", fontSize: 16, color: C.red, fontWeight: 700 }}>
+                Wrongly implied P ~ 40%
+              </div>
+            </div>
+            <div style={{
+              background: `${C.green}08`, border: `1px solid ${C.green}25`,
+              borderRadius: 4, padding: "14px 16px",
+            }}>
+              <div style={{ fontSize: 10, color: C.green, letterSpacing: "0.1em", marginBottom: 8 }}>WHAT THE DICE KNOW</div>
+              <div style={{ fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
+                <InfoTip term="independent">Independent trials</InfoTip>
+              </div>
+              <div style={{ fontFamily: "monospace", fontSize: 16, color: C.green, fontWeight: 700 }}>
+                P = 16.67%, always
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ══ Section 6: Development Cards ══ */}
+        <div style={{
+          background: C.panel, border: `1px solid ${C.border}`,
+          borderRadius: 4, padding: "20px 16px", marginBottom: 24,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 12, color: C.bright, fontWeight: 500 }}>Development Card Probability</div>
+              <div style={{ fontSize: 10, color: C.muted }}>
+                <InfoTip term="hypergeometric">Drawing without replacement</InfoTip> from a {deckTotal}-card deck
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontFamily: "monospace", color: C.muted }}>
+                {deckTotal} / 25 remaining
+              </span>
+              <button onClick={resetDeck} style={{
+                padding: "5px 14px", background: "transparent",
+                border: `1px solid ${C.border}`, color: C.muted,
+                fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+              }}>RESET DECK</button>
+            </div>
+          </div>
+
+          {/* Stacked bar */}
+          <div style={{
+            display: "flex", height: 24, borderRadius: 3, overflow: "hidden",
+            marginBottom: 16, marginTop: 12,
+          }}>
+            {Object.entries(deck).map(([type, count]) => {
+              const pct = deckTotal > 0 ? (count / deckTotal * 100) : 0;
+              if (pct <= 0) return null;
+              return (
+                <div key={type} style={{
+                  width: `${pct}%`, background: `${CARD_COLORS[type]}80`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 8, color: C.bright, letterSpacing: "0.05em",
+                  transition: "width 0.3s",
+                  overflow: "hidden", whiteSpace: "nowrap",
+                }}>
+                  {pct > 12 ? type : ""}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Card panels */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10, marginBottom: 16 }}>
+            {Object.entries(deck).map(([type, count]) => {
+              const pct = deckTotal > 0 ? (count / deckTotal * 100) : 0;
+              const color = CARD_COLORS[type];
+              const isVP = type === "Victory Point";
+              return (
+                <div key={type} style={{
+                  background: `${color}08`, border: `1px solid ${color}25`,
+                  borderRadius: 4, padding: "12px 14px",
+                }}>
+                  <div style={{ fontSize: 10, color, letterSpacing: "0.08em", marginBottom: 4 }}>
+                    {isVP ? <InfoTip term="vp">{type.toUpperCase()}</InfoTip> : type.toUpperCase()}
+                  </div>
+                  <div style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 700, color, marginBottom: 4 }}>
+                    {pct.toFixed(1)}%
+                  </div>
+                  <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace", marginBottom: 8 }}>
+                    {count} / {deckTotal} cards
+                  </div>
+                  <button onClick={() => drawCard(type)} disabled={count <= 0} style={{
+                    padding: "4px 10px", background: "transparent",
+                    border: `1px solid ${count > 0 ? color : C.border}`,
+                    color: count > 0 ? color : C.muted,
+                    fontSize: 9, letterSpacing: "0.06em", borderRadius: 2,
+                    opacity: count <= 0 ? 0.4 : 1, width: "100%",
+                  }}>
+                    + DRAW
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Knight warning */}
+          {knightsLeft <= 3 && knightsLeft > 0 && (
+            <div style={{
+              padding: "10px 14px", borderRadius: 4,
+              background: `${C.red}08`, border: `1px solid ${C.red}25`,
+              fontSize: 11, color: C.red, fontFamily: "monospace",
+            }}>
+              <InfoTip term="largestArmy">Largest Army</InfoTip> is now contested &mdash; only {knightsLeft} knight{knightsLeft > 1 ? "s" : ""} left in the deck
+            </div>
+          )}
+          {knightsLeft === 0 && (
+            <div style={{
+              padding: "10px 14px", borderRadius: 4,
+              background: `${C.red}08`, border: `1px solid ${C.red}25`,
+              fontSize: 11, color: C.red, fontFamily: "monospace",
+            }}>
+              All Knights have been drawn. <InfoTip term="largestArmy">Largest Army</InfoTip> is locked &mdash; no new challengers possible.
+            </div>
+          )}
+
+          {/* Insight callout */}
+          <div style={{
+            marginTop: 14, padding: "12px 16px", borderRadius: 4,
+            background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
+            fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
+          }}>
+            Your first card has a <span style={{ color: C.knight, fontFamily: "monospace" }}>56%</span> chance of being a Knight
+            and only an <span style={{ color: C.monopoly, fontFamily: "monospace" }}>8%</span> chance of being a Monopoly.
+            By mid-game, if Knights have been played, that gap closes &mdash; but Knight always starts as the modal draw.
+          </div>
+        </div>
+
+        {/* ══ Section 7: Proof Steps ══ */}
+        <div style={{
+          border: `1px solid ${C.border}`, borderRadius: 4,
+          marginBottom: 24, overflow: "hidden",
+        }}>
+          <button
+            onClick={() => setProofsOpen(o => !o)}
+            style={{
+              width: "100%", padding: "10px 16px", background: C.panel,
+              border: "none", display: "flex", justifyContent: "space-between",
+              alignItems: "center", color: C.text,
+            }}
+          >
+            <span style={{ fontSize: 10, letterSpacing: "0.12em", color: C.amber }}>
+              PROOF STEPS &mdash; Mathematical Foundation
+            </span>
+            <span style={{ fontSize: 10, color: C.muted }}>{proofsOpen ? "collapse" : "expand"}</span>
+          </button>
+          {proofsOpen && (
+            <div style={{ padding: "16px 20px" }}>
+              {[
+                {
+                  id: "STEP 1 — Combinatorics of Two Dice",
+                  claim: "The sum of two fair dice follows a discrete triangular distribution on {2, ..., 12}. Each sum s has exactly min(s-1, 13-s) combinations out of 36 total. This produces the familiar pyramid: 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1.",
+                  source: "Feller, W. An Introduction to Probability Theory, Vol. I, Ch. I (1950). Wiley.",
+                },
+                {
+                  id: "STEP 2 — Law of Large Numbers",
+                  claim: "The sample mean of independent, identically distributed random variables converges to the population mean as n approaches infinity. For dice: the observed frequency of each sum converges to its theoretical probability. The rate of convergence is O(1/sqrt(n)).",
+                  source: "Ibid., Ch. X. The Strong Law of Large Numbers.",
+                },
+                {
+                  id: "STEP 3 — Independence of Dice Rolls",
+                  claim: "Events A and B are independent if and only if P(A intersect B) = P(A) x P(B). Dice rolls satisfy this by physical construction — each roll is a fresh experiment. P(7 on roll k | any history of prior rolls) = P(7) = 6/36 = 1/6.",
+                  source: "Ibid., Ch. V. Conditional Probability and Independence.",
+                },
+                {
+                  id: "STEP 4 — Hypergeometric Distribution",
+                  claim: "Drawing cards without replacement from a finite deck follows the hypergeometric distribution. P(draw type X) = C(K,1) x C(N-K, 0) / C(N, 1) = K/N, where K = cards of type X, N = total remaining. This is not binomial because trials are not independent — each draw changes the deck composition.",
+                  source: "Feller, W. An Introduction to Probability Theory, Vol. I, Ch. II (1950). Hypergeometric distribution.",
+                },
+              ].map(({ id, claim, source }) => (
+                <div key={id} style={{
+                  marginBottom: 16, paddingLeft: 14,
+                  borderLeft: `2px solid ${C.subtle}`,
+                }}>
+                  <div style={{
+                    fontSize: 10, letterSpacing: "0.1em", color: C.amber,
+                    fontFamily: "monospace", marginBottom: 6,
+                  }}>{id}</div>
+                  <div style={{
+                    fontFamily: "'Source Serif 4', serif",
+                    fontSize: 13, lineHeight: 1.75, color: "#94a3b8",
+                  }}>{claim}</div>
+                  <div style={{
+                    fontSize: 11, color: C.muted, marginTop: 6,
+                    fontFamily: "'Source Serif 4', serif", fontStyle: "italic",
+                  }}>&#8627; {source}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ══ Section 8: Citations ══ */}
+        <div style={{
+          paddingTop: 16, borderTop: `1px solid ${C.border}`,
+          fontSize: 10, color: C.muted, lineHeight: 2,
+        }}>
+          <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>CITATIONS</div>
+          <div>[1] Feller, W. (1950). <em>An Introduction to Probability Theory and Its Applications,</em> Vol. I. Wiley.</div>
+          <div>[2] Kahneman, D. (2011). <em>Thinking, Fast and Slow.</em> Farrar, Straus and Giroux. Ch. 10: The Law of Small Numbers.</div>
+          <div>[3] Catan GmbH. <em>CATAN Official Rulebook,</em> 5th Edition. Development card deck composition: 14 Knights, 5 VPs, 2 Road Building, 2 Year of Plenty, 2 Monopoly.</div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
