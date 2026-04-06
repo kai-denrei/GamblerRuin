@@ -639,13 +639,32 @@ function App() {
             </ComposedChart>
           </ResponsiveContainer>
 
-          {/* Percentage labels */}
-          <div style={{ display: "flex", justifyContent: "space-around", margin: "8px 0 16px", padding: "0 30px" }}>
-            {theoData.map(d => (
-              <div key={d.sum} style={{ textAlign: "center", fontSize: S.xs, fontFamily: F.mono, color: sumColor(d.sum) }}>
-                {d.prob.toFixed(1)}%
-              </div>
-            ))}
+          {/* Percentage labels — staggered: evens on top row, odds below */}
+          <div style={{ position: "relative", margin: "8px 0 16px", padding: "0 30px" }}>
+            {/* Even sums: 2, 4, 6, 8, 10, 12 */}
+            <div style={{ display: "flex", justifyContent: "space-around" }}>
+              {theoData.map(d => (
+                <div key={d.sum} style={{
+                  textAlign: "center", fontSize: S.xs, fontFamily: F.mono,
+                  color: d.sum % 2 === 0 ? sumColor(d.sum) : "transparent",
+                  flex: 1,
+                }}>
+                  {d.prob.toFixed(1)}%
+                </div>
+              ))}
+            </div>
+            {/* Odd sums: 3, 5, 7, 9, 11 */}
+            <div style={{ display: "flex", justifyContent: "space-around", marginTop: 2 }}>
+              {theoData.map(d => (
+                <div key={d.sum} style={{
+                  textAlign: "center", fontSize: S.xs, fontFamily: F.mono,
+                  color: d.sum % 2 === 1 ? sumColor(d.sum) : "transparent",
+                  flex: 1,
+                }}>
+                  {d.prob.toFixed(1)}%
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Sample space grid */}
