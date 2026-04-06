@@ -640,26 +640,26 @@ function App() {
           </ResponsiveContainer>
 
           {/* Percentage labels — staggered: evens on top row, odds below */}
-          <div style={{ position: "relative", margin: "8px 0 16px", padding: "0 30px" }}>
+          <div style={{ margin: "8px 0 16px", overflow: "hidden" }}>
             {/* Even sums: 2, 4, 6, 8, 10, 12 */}
-            <div style={{ display: "flex", justifyContent: "space-around" }}>
+            <div style={{ display: "flex" }}>
               {theoData.map(d => (
                 <div key={d.sum} style={{
                   textAlign: "center", fontSize: S.xs, fontFamily: F.mono,
                   color: d.sum % 2 === 0 ? sumColor(d.sum) : "transparent",
-                  flex: 1,
+                  flex: "1 1 0", minWidth: 0, overflow: "hidden",
                 }}>
                   {d.prob.toFixed(1)}%
                 </div>
               ))}
             </div>
             {/* Odd sums: 3, 5, 7, 9, 11 */}
-            <div style={{ display: "flex", justifyContent: "space-around", marginTop: 2 }}>
+            <div style={{ display: "flex", marginTop: 2 }}>
               {theoData.map(d => (
                 <div key={d.sum} style={{
                   textAlign: "center", fontSize: S.xs, fontFamily: F.mono,
                   color: d.sum % 2 === 1 ? sumColor(d.sum) : "transparent",
-                  flex: 1,
+                  flex: "1 1 0", minWidth: 0, overflow: "hidden",
                 }}>
                   {d.prob.toFixed(1)}%
                 </div>
