@@ -93,6 +93,7 @@ const LANG = {
     s2sub: "P(sum) for 2d6",
     s2outcomes: "36 outcomes",
     s2combos: "ALL COMBINATIONS BY SUM",
+    s2impossible: "impossible with 2 dice",
     s2callout1: "6x more likely",
     s2callout2: "1-in-6 chance of robber",
     s2calloutPre: "7 is ",
@@ -187,6 +188,7 @@ const LANG = {
     s2sub: "2d6の合計確率",
     s2outcomes: "36通り",
     s2combos: "合計別の全組み合わせ",
+    s2impossible: "2つのサイコロでは不可能",
     s2callout1: "6倍出やすい",
     s2callout2: "盗賊確率 1/6",
     s2calloutPre: "7は2や12より",
@@ -294,30 +296,45 @@ function dicePairsForSum(s) {
 }
 
 // ── Sample space grid — dice combos by sum ──────────────────────────────────
-function DiceGrid({ label }) {
+function DiceGrid({ label, impossibleLabel }) {
+  const impLabel = impossibleLabel || "impossible with 2 dice";
   return (
     <div style={{ marginTop: 16, marginBottom: 8 }}>
       <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>
         {label}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+        {/* 1 = impossible */}
+        <div style={{
+          padding: "10px 14px", borderRadius: 4,
+          background: `${C.muted}08`, border: `1px dashed ${C.muted}30`,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+            <span style={{ fontSize: S.md, fontWeight: 700, color: C.muted, fontFamily: F.mono }}>1</span>
+            <span style={{ fontSize: S.xs, color: C.muted, fontFamily: F.mono }}>0/36 = 0%</span>
+          </div>
+          <div style={{ fontSize: S.sm, color: C.muted, fontStyle: "italic" }}>
+            {impLabel}
+          </div>
+        </div>
+        {/* 2-12 */}
         {Array.from({ length: 11 }, (_, i) => {
           const s = i + 2;
           const pairs = dicePairsForSum(s);
           const color = sumColor(s);
           return (
             <div key={s} style={{
-              padding: "8px 12px", borderRadius: 4,
+              padding: "10px 14px", borderRadius: 4,
               background: `${color}08`, border: `1px solid ${color}20`,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                <span style={{ fontSize: S.md, fontWeight: 700, color, fontFamily: "monospace" }}>{s}</span>
-                <span style={{ fontSize: S.xs, color: C.muted, fontFamily: "monospace" }}>{FRACTIONS[s]} = {(THEORETICAL[s] * 100).toFixed(1)}%</span>
+                <span style={{ fontSize: S.md, fontWeight: 700, color, fontFamily: F.mono }}>{s}</span>
+                <span style={{ fontSize: S.xs, color: C.muted, fontFamily: F.mono }}>{FRACTIONS[s]} = {(THEORETICAL[s] * 100).toFixed(1)}%</span>
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {pairs.map(([a, b], j) => (
                   <span key={j} style={{
-                    fontSize: S.lg, letterSpacing: 1, color,
+                    fontSize: 28, letterSpacing: 2, color,
                     lineHeight: 1,
                   }} title={`${a} + ${b} = ${s}`}>
                     {DICE_FACE[a]}{DICE_FACE[b]}
@@ -388,6 +405,7 @@ function InfoTip({ term, children }) {
 // ── Dev card constants ───────────────────────────────────────────────────────
 const DECK_INIT = { Knight: 14, "Victory Point": 5, "Road Building": 2, "Year of Plenty": 2, Monopoly: 2 };
 const CARD_COLORS = { Knight: C.knight, "Victory Point": C.vp, "Road Building": C.road, "Year of Plenty": C.plenty, Monopoly: C.monopoly };
+const CARD_SHORT = { Knight: "KNIGHT", "Victory Point": "V.POINT", "Road Building": "ROAD", "Year of Plenty": "PLENTY", Monopoly: "MONOPOLY" };
 
 // ── Chi-squared ──────────────────────────────────────────────────────────────
 function chi2(counts, n) {
@@ -419,7 +437,7 @@ function HistTooltip({ active, payload, t }) {
       {d.observed != null && <div style={{ color: C.blue }}>{tt("ttObserved")}: {d.observed} {tt("ttRolls")} ({d.obsPct}%)</div>}
       <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
         {pairs.map(([a, b], j) => (
-          <div key={j} style={{ fontSize: S.lg, color, lineHeight: 1 }}>
+          <div key={j} style={{ fontSize: 24, color, lineHeight: 1, letterSpacing: 2 }}>
             {DICE_FACE[a]}{DICE_FACE[b]}
           </div>
         ))}
@@ -621,18 +639,17 @@ function App() {
             </ComposedChart>
           </ResponsiveContainer>
 
-          {/* Fraction labels */}
+          {/* Percentage labels */}
           <div style={{ display: "flex", justifyContent: "space-around", margin: "8px 0 16px", padding: "0 30px" }}>
             {theoData.map(d => (
-              <div key={d.sum} style={{ textAlign: "center", fontSize: S.xs, fontFamily: "monospace" }}>
-                <div style={{ color: sumColor(d.sum) }}>{d.frac}</div>
-                <div style={{ color: C.muted }}>{d.prob.toFixed(1)}%</div>
+              <div key={d.sum} style={{ textAlign: "center", fontSize: S.xs, fontFamily: F.mono, color: sumColor(d.sum) }}>
+                {d.prob.toFixed(1)}%
               </div>
             ))}
           </div>
 
           {/* Sample space grid */}
-          <DiceGrid label={t("s2combos")} />
+          <DiceGrid label={t("s2combos")} impossibleLabel={t("s2impossible")} />
 
           {/* Key stat callout */}
           <div style={{
@@ -956,18 +973,19 @@ function App() {
           </div>
 
           {/* Card panels */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
             {Object.entries(deck).map(([type, count]) => {
               const pct = deckTotal > 0 ? (count / deckTotal * 100) : 0;
               const color = CARD_COLORS[type];
               const isVP = type === "Victory Point";
+              const shortName = CARD_SHORT[type] || type.toUpperCase();
               return (
                 <div key={type} style={{
                   background: `${color}08`, border: `1px solid ${color}25`,
                   borderRadius: 4, padding: "12px 14px",
                 }}>
                   <div style={{ fontSize: S.sm, color, letterSpacing: "0.08em", marginBottom: 4 }}>
-                    {isVP ? <InfoTip term="vp">{type.toUpperCase()}</InfoTip> : type.toUpperCase()}
+                    {isVP ? <InfoTip term="vp">{shortName}</InfoTip> : shortName}
                   </div>
                   <div style={{ fontFamily: F.mono, fontSize: S.xl, fontWeight: 700, color, marginBottom: 4 }}>
                     {pct.toFixed(1)}%
