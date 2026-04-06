@@ -151,7 +151,7 @@ const pct = (v, d = 6) => v === null ? "—" : v === 0 ? "~0%" : `${(v * 100).to
 const STEPS = [
   {
     id: "STEP 1 — Model Selection",
-    claim: "A player makes fixed bets of size k in a game with win probability p per round. The session ends at ruin (bankroll = 0) or success (bankroll ≥ T). This constitutes a Markov chain on states {0, k, 2k, …, T}.",
+    claim: "Fixed bets of size k, win probability p. Session ends at ruin (0) or success (≥ T). Markov chain on {0, k, 2k, …, T}.",
     source: "Feller, W. An Introduction to Probability Theory, Vol. I, Ch. XIV (1950). Wiley.",
   },
   {
@@ -161,28 +161,28 @@ const STEPS = [
   },
   {
     id: "STEP 3 — Bold Play Theorem",
-    claim: "Among all admissible strategies in a subfair game, bold play — betting min(B, T−B) at each decision point — uniquely maximizes P(reach T). No timid or mixed strategy can improve upon it. The intuition: fewer rounds give the house edge fewer compounding opportunities.",
+    claim: "Bold play — bet min(B, T−B) each round — uniquely maximizes P(reach T) in subfair games. Fewer rounds = fewer compounding opportunities for the house edge.",
     source: "Dubins, L.E. & Savage, L.J. How to Gamble If You Must (1965). McGraw-Hill. Theorem 1.",
   },
   {
     id: "STEP 4 — Consequence for Fixed Bet Sizes",
-    claim: "Within the class of fixed-bet strategies, P(reach T) is strictly increasing in k when p < 0.5. 'More attempts' is a misleading heuristic: it assumes independence, but each round is a multiplicative erosion of expected wealth in a negative-EV game.",
+    claim: "For fixed-bet strategies, P(reach T) is strictly increasing in k when p < 0.5. 'More attempts' is misleading — each round compounds the house edge against you.",
     source: "Ethier, S.N. & Tavaré, S. (1983). The proportional bettor's return on investment. J. Applied Probability, 20(3), 563–573.",
   },
 ];
 
 // ── Descriptions for key terms (hover on desktop, tap on mobile) ─────────────
 const TIPS = {
-  B: "The amount of money you start with. This is your initial capital before any bets are placed.",
-  T: "The goal amount you want to reach. The game ends when you hit this target or lose everything (ruin).",
-  edge: "The casino's built-in advantage on every bet. A -0.50% edge means you lose £0.50 on average per £100 wagered. The more negative, the worse the odds.",
-  p: "Your probability of winning any single bet. Derived from the house edge: p = (1 + edge) / 2. Below 0.5 means the game is subfair.",
-  mcTrials: "Number of random simulations run per data point. More trials = more accurate Monte Carlo estimate, but takes longer.",
-  boldPlay: "Betting the maximum possible (min of bankroll, target minus bankroll) each round. Dubins & Savage proved this uniquely maximizes the chance of reaching the target in a subfair game.",
-  timidPlay: "Betting the minimum amount each round. Gives more rounds of play but exposes you to the house edge for longer — strictly worse for reaching a target in a subfair game.",
-  closedForm: "The exact mathematical probability computed from the Gambler's Ruin formula. No simulation needed — this is the true answer.",
-  monteCarlo: "An empirical estimate obtained by simulating thousands of random game sessions and counting how many reach the target.",
-  subfair: "A game where the house has an advantage (win probability < 50%). Every casino game is subfair for the player.",
+  B: "Starting capital. Initial bankroll before any bets.",
+  T: "Goal amount. Game ends when you reach this or go to zero.",
+  edge: "Casino's advantage per bet. -0.50% = lose £0.50 per £100 wagered on average.",
+  p: "Win probability per bet. p = (1 + edge) / 2. Below 0.5 = subfair.",
+  mcTrials: "Random simulations per data point. More trials = more accurate, slower.",
+  boldPlay: "Bet min(bankroll, target - bankroll) each round. Proven optimal for reaching target in subfair games (Dubins & Savage 1965).",
+  timidPlay: "Bet minimum each round. More rounds = more exposure to house edge. Strictly worse for reaching a target.",
+  closedForm: "Exact probability from the Gambler's Ruin formula. No simulation needed.",
+  monteCarlo: "Empirical estimate: simulate thousands of sessions, count how many reach target.",
+  subfair: "House has the advantage (win probability < 50%). All casino games are subfair.",
 };
 
 function InfoTip({ term, children }) {
@@ -398,9 +398,8 @@ function App() {
           </span>
         </div>
         <p style={{ color: C.muted, fontSize: S.base, marginTop: 6, lineHeight: 1.6, maxWidth: 640 }}>
-          In a <InfoTip term="subfair">subfair game</InfoTip>, P(reach target T) is strictly increasing in bet size.
-          Larger bets are not riskier relative to goal — they are optimal.
-          This simulation proves the claim via closed-form and Monte Carlo.
+          In a <InfoTip term="subfair">subfair game</InfoTip>, P(reach target) increases with bet size.
+          Larger bets are optimal. Verified via closed-form and Monte Carlo.
         </p>
       </div>
 
@@ -583,7 +582,7 @@ function App() {
             }}
           >
             <span style={{ fontSize: S.sm, letterSpacing: "0.12em", color: C.amber }}>
-              REASONING BLOCK — Mathematical Foundation (sources cited before computation)
+              MATHEMATICAL FOUNDATION
             </span>
             <span style={{ fontSize: S.sm, color: C.muted }}>{reasonOpen ? "collapse" : "expand"}</span>
           </button>
@@ -630,14 +629,14 @@ function App() {
             fontFamily: F.serif,
             color: C.muted, fontSize: S.base, marginBottom: 20,
           }}>
-            Both start at {fmt(B)}, target {fmt(safeT)}, edge {(edge * 100).toFixed(2)}%.
-            Intuition says more attempts = better. The math disagrees.
+            B = {fmt(B)}, T = {fmt(safeT)}, edge = {(edge * 100).toFixed(2)}%.
+            More attempts feels safer. It isn't.
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
             {dsResult && [
-              { label: "TIMID PLAY", tip: "timidPlay", sublabel: "£25k / bet", cf: dsResult.cf1, mc: dsResult.mc1, color: C.red, verdict: "Compounding erosion. House edge grinds you down." },
-              { label: "BOLD PLAY", tip: "boldPlay", sublabel: "£100k / bet", cf: dsResult.cf2, mc: dsResult.mc2, color: C.green, verdict: "Fewer rounds. House gets less time to work against you." },
+              { label: "TIMID PLAY", tip: "timidPlay", sublabel: "£25k / bet", cf: dsResult.cf1, mc: dsResult.mc1, color: C.red, verdict: "More rounds. House edge compounds." },
+              { label: "BOLD PLAY", tip: "boldPlay", sublabel: "£100k / bet", cf: dsResult.cf2, mc: dsResult.mc2, color: C.green, verdict: "Fewer rounds. Less compounding." },
             ].map(({ label, tip, sublabel, cf, mc: mcV, color, verdict }) => (
               <div key={label} style={{
                 background: C.panel, border: `1px solid ${color}30`,
@@ -669,16 +668,14 @@ function App() {
           }}>
             {dsResult && dsMultiplier ? (
               <>
-                Bold play is <span style={{ color: C.amber, fontFamily: F.mono, fontSize: 14 }}>
+                Bold play: <span style={{ color: C.amber, fontFamily: F.mono, fontSize: S.md }}>
                   {dsMultiplier}x
-                </span> more likely to reach the target — despite making{" "}
+                </span> more likely to reach target with{" "}
                 <span style={{ color: C.red }}>75% fewer bets</span>.
-                {" "}Every additional round in a negative-EV game is a compounding disadvantage.
-                Dubins & Savage (1965) proved this is the global optimum — no strategy can do better.
+                {" "}Global optimum (Dubins & Savage 1965).
               </>
             ) : dsResult ? (
-              "The P(reach T) for £25k is so small it underflows standard floating-point. " +
-              "This itself is the demonstration: timid play is not merely worse — it is catastrophically worse."
+              "P(reach T) at £25k underflows floating-point. Timid play is catastrophically worse."
             ) : "Computing..."}
           </div>
         </div>
@@ -732,7 +729,7 @@ function App() {
               padding: "8px 16px", fontSize: S.sm, color: C.muted,
               borderTop: `1px solid ${C.border}`,
             }}>
-              Trials auto-scaled per bet size to prevent browser freeze. Small bets = fewer trials.
+              Trials auto-scaled per bet size. Small bets = fewer trials.
             </div>
           </div>
         )}

@@ -111,7 +111,7 @@ function DiceGrid() {
   return (
     <div style={{ marginTop: 16, marginBottom: 8 }}>
       <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>
-        ALL COMBINATIONS BY SUM — UNICODE DICE
+        ALL COMBINATIONS BY SUM
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
         {Array.from({ length: 11 }, (_, i) => {
@@ -147,14 +147,14 @@ function DiceGrid() {
 
 // ── InfoTip ──────────────────────────────────────────────────────────────────
 const TIPS = {
-  combinations: "Two standard dice produce 36 equally likely outcomes (6 x 6). The number of ways to make each sum determines its probability.",
-  independent: "Each dice roll is independent — the dice have no memory. Previous rolls cannot influence future outcomes. This is a fundamental axiom of probability.",
-  hypergeometric: "Drawing cards without replacement follows the hypergeometric distribution: P(draw type X) = (cards of type X remaining) / (total cards remaining).",
-  gambler: "The false belief that past random outcomes affect future ones. Named after the Monte Carlo Casino incident of 1913, where black came up 26 times in a row at roulette.",
-  vp: "Victory Point cards are hidden until the holder wins — they are never played face-up. This means you cannot track them out of the deck by observation alone.",
-  largestArmy: "Requires 3+ Knights played. If Knights are depleted from the deck, no new player can contest it.",
-  chi2: "Chi-squared goodness-of-fit measures how closely observed frequencies match expected frequencies. Lower values = better fit. Below ~18.3 (for 10 degrees of freedom at p=0.05) means no significant deviation from theory.",
-  robber: "Rolling a 7 activates the robber. Any player with more than 7 resource cards must discard half. The roller then moves the robber and steals one card.",
+  combinations: "Two dice, 6 faces each = 36 outcomes. More ways to make a sum = higher probability.",
+  independent: "Dice have no memory. Prior rolls cannot affect the next. Each roll is a fresh experiment.",
+  hypergeometric: "Drawing without replacement: P(type X) = (X remaining) / (total remaining). Not binomial — each draw changes the deck.",
+  gambler: "The false belief that past outcomes affect future ones. Monte Carlo Casino, 1913: black hit 26 times in a row. Gamblers lost fortunes betting red.",
+  vp: "VP cards stay hidden until the holder wins. You cannot track them by observation.",
+  largestArmy: "Requires 3+ Knights played. Once Knights are gone from the deck, no new challenger can take it.",
+  chi2: "Measures observed vs. expected frequency fit. Lower = better. Below 18.3 (at p=0.05, 10 d.f.) = no significant deviation.",
+  robber: "Roll 7: robber activates. Players with 7+ cards discard half. Roller moves robber, steals one card.",
 };
 
 function InfoTip({ term, children }) {
@@ -356,14 +356,14 @@ function App() {
 
   // ── Convergence text ──────────────────────────────────────────────────────
   const convText = convN <= 70
-    ? "At 70 rolls (one game), the histogram is noisy and irregular. Individual sums may be missing entirely."
+    ? "70 rolls = one game. Noisy, irregular. Some sums may not appear at all."
     : convN <= 360
-    ? "At 360 rolls (~5 games), the bell shape starts to emerge. The peak at 7 is visible but edges are still rough."
+    ? "360 rolls = ~5 games. Bell shape emerging. Peak at 7 visible, edges still rough."
     : convN <= 1000
-    ? "At 1,000 rolls, the distribution is recognizably bell-shaped. Deviations from theory are shrinking."
+    ? "1,000 rolls. Recognizably bell-shaped. Deviations shrinking."
     : convN <= 5000
-    ? "At 5,000 rolls, the histogram closely tracks the theoretical curve. The Law of Large Numbers is doing its work."
-    : "At 36,000 rolls (1,000 per combination), the histogram is nearly indistinguishable from theory. Each sum has been sampled ~1,000 times.";
+    ? "5,000 rolls. Histogram tracks theory closely."
+    : "36,000 rolls. Nearly indistinguishable from theory.";
 
   return (
     <div style={{
@@ -380,7 +380,7 @@ function App() {
           The Dice Don't Care
         </h1>
         <div style={{ color: C.muted, fontSize: S.base, fontFamily: F.display, fontStyle: "italic", marginBottom: 14 }}>
-          A statistical anatomy of Settlers of Catan
+          Settlers of Catan Statistics
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
           {["DICE PROBABILITY", "GAMBLER'S FALLACY", "DEVELOPMENT CARDS"].map(tag => (
@@ -391,9 +391,8 @@ function App() {
             }}>{tag}</span>
           ))}
         </div>
-        <p style={{ color: C.muted, fontSize: S.base, lineHeight: 1.7, maxWidth: 700, fontFamily: "'Source Serif 4', serif" }}>
-          Every number on the board, every card you buy, and every roll you're waiting on has an exact probability.
-          Here's what the math actually says.
+        <p style={{ color: C.muted, fontSize: S.base, lineHeight: 1.7, maxWidth: 700, fontFamily: F.serif }}>
+          Every dice roll and card draw has an exact probability. Here's the math.
         </p>
       </div>
 
@@ -405,10 +404,10 @@ function App() {
           borderRadius: 4, padding: "20px 16px", marginBottom: 24,
         }}>
           <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
-            The Theoretical Bell Curve
+            Two-Dice Distribution
           </div>
           <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
-            Exact probability of each sum (2-12) from two six-sided dice &mdash; <InfoTip term="combinations">36 combinations</InfoTip>
+            P(sum) for 2d6 &mdash; <InfoTip term="combinations">36 outcomes</InfoTip>
           </div>
 
           <ResponsiveContainer width="100%" height={280}>
@@ -444,7 +443,7 @@ function App() {
             fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
             7 is <span style={{ color: C.amber, fontFamily: F.mono, fontWeight: 700 }}>6x more likely</span> than 2 or 12.
-            On any given roll, there is a <InfoTip term="robber"><span style={{ color: C.red, fontFamily: "monospace" }}>1-in-6 chance</span></InfoTip> the robber moves.
+            Every roll: <InfoTip term="robber"><span style={{ color: C.red, fontFamily: F.mono }}>1-in-6 chance of robber</span></InfoTip>.
           </div>
         </div>
 
@@ -455,8 +454,8 @@ function App() {
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>The 70-Roll Simulation</div>
-              <div style={{ fontSize: S.sm, color: C.muted }}>A typical 4-player game produces ~70 rolls</div>
+              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>70-Roll Simulation</div>
+              <div style={{ fontSize: S.sm, color: C.muted }}>One typical game (~70 rolls)</div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {rolls.length > 0 && (
@@ -520,8 +519,7 @@ function App() {
             marginTop: 14, fontFamily: F.serif,
             fontSize: S.base, color: C.muted, lineHeight: 1.7, fontStyle: "italic",
           }}>
-            Seventy rolls is a small sample. The shape is recognizable but noisy &mdash; some numbers may never appear,
-            others may double their expected count. This is normal.
+            70 rolls is a small sample. Shape is recognizable but noisy. Some sums may not appear; others may double expected count. Normal.
           </div>
         </div>
 
@@ -531,10 +529,10 @@ function App() {
           borderRadius: 4, padding: "20px 16px", marginBottom: 24,
         }}>
           <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
-            How Many Rolls Until the Bell Curve Looks Clean?
+            Convergence
           </div>
           <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
-            The Law of Large Numbers in action &mdash; convergence to the theoretical distribution
+            How many rolls until theory matches observation?
           </div>
 
           {/* N selector */}
@@ -599,8 +597,7 @@ function App() {
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
             fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
-            <span style={{ color: C.amber, fontWeight: 700, fontFamily: "monospace" }}>Minimum for a visually clean bell curve: ~360 rolls</span> (~5 full games).
-            Probability theory needs patience.
+            <span style={{ color: C.amber, fontWeight: 700, fontFamily: F.mono }}>Clean bell curve: ~360 rolls</span> (~5 games).
           </div>
         </div>
 
@@ -613,7 +610,7 @@ function App() {
             The <InfoTip term="gambler">Gambler's Fallacy</InfoTip>
           </div>
           <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
-            Why streaks do not change the next roll's probability
+            Streaks don't change the next roll
           </div>
 
           {/* Streak display */}
@@ -631,7 +628,7 @@ function App() {
             ))}
             {streak.length === 0 && (
               <div style={{ fontSize: S.sm, color: C.muted, fontStyle: "italic", paddingTop: 6 }}>
-                No rolls yet. Click a button below to start.
+                No rolls yet.
               </div>
             )}
           </div>
@@ -681,9 +678,8 @@ function App() {
             <div style={{ fontSize: 36, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>
               16.67%
             </div>
-            <div style={{ fontSize: S.base, color: C.red, marginTop: 8, fontFamily: "'Source Serif 4', serif" }}>
-              Even after {streak.filter(r => r !== 7).length > 10 ? streak.filter(r => r !== 7).length : "20"} rolls with no 7,
-              the next roll's probability is identical.
+            <div style={{ fontSize: S.base, color: C.red, marginTop: 8, fontFamily: F.serif }}>
+              After any number of non-7 rolls, P(7) stays 16.67%.
             </div>
           </div>
 
@@ -693,21 +689,21 @@ function App() {
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
               borderRadius: 4, padding: "14px 16px",
             }}>
-              <div style={{ fontSize: S.sm, color: C.red, letterSpacing: "0.1em", marginBottom: 8 }}>WHAT PEOPLE BELIEVE</div>
+              <div style={{ fontSize: S.sm, color: C.red, letterSpacing: "0.1em", marginBottom: 8 }}>INTUITION</div>
               <div style={{ fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
                 "It's due for a 7"
               </div>
               <div style={{ fontFamily: F.mono, fontSize: S.lg, color: C.red, fontWeight: 700 }}>
-                Wrongly implied P ~ 40%
+                Implied P ~ 40% (wrong)
               </div>
             </div>
             <div style={{
               background: `${C.green}08`, border: `1px solid ${C.green}25`,
               borderRadius: 4, padding: "14px 16px",
             }}>
-              <div style={{ fontSize: S.sm, color: C.green, letterSpacing: "0.1em", marginBottom: 8 }}>WHAT THE DICE KNOW</div>
+              <div style={{ fontSize: S.sm, color: C.green, letterSpacing: "0.1em", marginBottom: 8 }}>REALITY</div>
               <div style={{ fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
-                <InfoTip term="independent">Independent trials</InfoTip>
+                <InfoTip term="independent">Independent trials</InfoTip> &mdash; no memory
               </div>
               <div style={{ fontFamily: F.mono, fontSize: S.lg, color: C.green, fontWeight: 700 }}>
                 P = 16.67%, always
@@ -723,9 +719,9 @@ function App() {
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>Development Card Probability</div>
+              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>Development Cards</div>
               <div style={{ fontSize: S.sm, color: C.muted }}>
-                <InfoTip term="hypergeometric">Drawing without replacement</InfoTip> from a {deckTotal}-card deck
+                <InfoTip term="hypergeometric">Draw without replacement</InfoTip> &mdash; {deckTotal} cards
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -803,7 +799,7 @@ function App() {
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
               fontSize: S.base, color: C.red, fontFamily: F.mono,
             }}>
-              <InfoTip term="largestArmy">Largest Army</InfoTip> is now contested &mdash; only {knightsLeft} knight{knightsLeft > 1 ? "s" : ""} left in the deck
+              <InfoTip term="largestArmy">Largest Army</InfoTip> contested &mdash; {knightsLeft} knight{knightsLeft > 1 ? "s" : ""} left
             </div>
           )}
           {knightsLeft === 0 && (
@@ -812,7 +808,7 @@ function App() {
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
               fontSize: S.base, color: C.red, fontFamily: F.mono,
             }}>
-              All Knights have been drawn. <InfoTip term="largestArmy">Largest Army</InfoTip> is locked &mdash; no new challengers possible.
+              All Knights drawn. <InfoTip term="largestArmy">Largest Army</InfoTip> locked.
             </div>
           )}
 
@@ -822,9 +818,8 @@ function App() {
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
             fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
-            Your first card has a <span style={{ color: C.knight, fontFamily: "monospace" }}>56%</span> chance of being a Knight
-            and only an <span style={{ color: C.monopoly, fontFamily: "monospace" }}>8%</span> chance of being a Monopoly.
-            By mid-game, if Knights have been played, that gap closes &mdash; but Knight always starts as the modal draw.
+            First draw: <span style={{ color: C.knight, fontFamily: F.mono }}>56% Knight</span>, <span style={{ color: C.monopoly, fontFamily: F.mono }}>8% Monopoly</span>.
+            As Knights get played, the gap closes.
           </div>
         </div>
 
@@ -842,7 +837,7 @@ function App() {
             }}
           >
             <span style={{ fontSize: S.sm, letterSpacing: "0.12em", color: C.amber }}>
-              PROOF STEPS &mdash; Mathematical Foundation
+              MATHEMATICAL FOUNDATION
             </span>
             <span style={{ fontSize: S.sm, color: C.muted }}>{proofsOpen ? "collapse" : "expand"}</span>
           </button>
@@ -851,22 +846,22 @@ function App() {
               {[
                 {
                   id: "STEP 1 — Combinatorics of Two Dice",
-                  claim: "The sum of two fair dice follows a discrete triangular distribution on {2, ..., 12}. Each sum s has exactly min(s-1, 13-s) combinations out of 36 total. This produces the familiar pyramid: 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1.",
+                  claim: "Two fair dice produce a triangular distribution on {2...12}. Combinations per sum: min(s-1, 13-s) out of 36. Pyramid: 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1.",
                   source: "Feller, W. An Introduction to Probability Theory, Vol. I, Ch. I (1950). Wiley.",
                 },
                 {
                   id: "STEP 2 — Law of Large Numbers",
-                  claim: "The sample mean of independent, identically distributed random variables converges to the population mean as n approaches infinity. For dice: the observed frequency of each sum converges to its theoretical probability. The rate of convergence is O(1/sqrt(n)).",
+                  claim: "Sample mean of i.i.d. variables converges to population mean as n grows. Observed frequency approaches theoretical probability. Rate: O(1/sqrt(n)).",
                   source: "Ibid., Ch. X. The Strong Law of Large Numbers.",
                 },
                 {
                   id: "STEP 3 — Independence of Dice Rolls",
-                  claim: "Events A and B are independent if and only if P(A intersect B) = P(A) x P(B). Dice rolls satisfy this by physical construction — each roll is a fresh experiment. P(7 on roll k | any history of prior rolls) = P(7) = 6/36 = 1/6.",
+                  claim: "Independent iff P(A and B) = P(A) x P(B). Dice satisfy this physically. P(7 | any prior history) = P(7) = 1/6.",
                   source: "Ibid., Ch. V. Conditional Probability and Independence.",
                 },
                 {
                   id: "STEP 4 — Hypergeometric Distribution",
-                  claim: "Drawing cards without replacement from a finite deck follows the hypergeometric distribution. P(draw type X) = C(K,1) x C(N-K, 0) / C(N, 1) = K/N, where K = cards of type X, N = total remaining. This is not binomial because trials are not independent — each draw changes the deck composition.",
+                  claim: "Drawing without replacement: hypergeometric. P(type X) = K/N where K = remaining of type X, N = total remaining. Not binomial — each draw changes deck composition.",
                   source: "Feller, W. An Introduction to Probability Theory, Vol. I, Ch. II (1950). Hypergeometric distribution.",
                 },
               ].map(({ id, claim, source }) => (
@@ -900,7 +895,7 @@ function App() {
           <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>CITATIONS</div>
           <div>[1] Feller, W. (1950). <em>An Introduction to Probability Theory and Its Applications,</em> Vol. I. Wiley.</div>
           <div>[2] Kahneman, D. (2011). <em>Thinking, Fast and Slow.</em> Farrar, Straus and Giroux. Ch. 10: The Law of Small Numbers.</div>
-          <div>[3] Catan GmbH. <em>CATAN Official Rulebook,</em> 5th Edition. Development card deck composition: 14 Knights, 5 VPs, 2 Road Building, 2 Year of Plenty, 2 Monopoly.</div>
+          <div>[3] Catan GmbH. <em>CATAN Official Rulebook,</em> 5th Ed. Deck: 14 Knights, 5 VPs, 2 Road Building, 2 Year of Plenty, 2 Monopoly.</div>
         </div>
 
       </div>
