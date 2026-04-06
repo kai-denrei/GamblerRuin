@@ -163,8 +163,19 @@ const LANG = {
     s7claim3: "Independent iff P(A and B) = P(A) x P(B). Dice satisfy this physically. P(7 | any prior history) = P(7) = 1/6.",
     s7step4: "STEP 4 \u2014 Hypergeometric",
     s7claim4: "Drawing without replacement: hypergeometric. P(type X) = K/N where K = remaining of type X, N = total remaining. Not binomial \u2014 each draw changes deck composition.",
-    // Section 8
-    s8title: "CITATIONS",
+    // Section 8 — Card counter
+    s8title2: "Card Counter",
+    s8sub: "Track revealed cards. Compute draw odds from what remains.",
+    s8revealed: "REVEALED",
+    s8remaining: "remaining in deck",
+    s8odds: "DRAW ODDS",
+    s8revealNote: "Knights, Road Building, Year of Plenty, and Monopoly are played face-up \u2014 all players see them. VPs stay hidden until a player wins. You can only count revealed cards.",
+    s8unrevealed: "WHY UNREVEALED CARDS DON'T MATTER",
+    s8unrevealedNote: "Other players' unplayed dev cards are hidden but still in their hands, not in the deck. Only the deck composition matters for your next draw. If 6 Knights have been played (revealed) and you hold 1, the deck has 14 \u2212 6 \u2212 1 = 7 Knights. Cards in opponents' hands are unknown but removed from the deck either way.",
+    s8yourHand: "Your hand (held, not played)",
+    s8reset2: "RESET",
+    // Section 9
+    s9title: "CITATIONS",
     // Legend
     theory: "Theory",
     observed: "Observed",
@@ -253,7 +264,17 @@ const LANG = {
     s7claim3: "P(AかつB) = P(A)×P(B)のとき独立。サイコロは物理的にこれを満たす。P(7|過去の履歴) = P(7) = 1/6。",
     s7step4: "手順4 — 超幾何分布",
     s7claim4: "非復元抽出は超幾何分布に従う。P(型X) = K/N。K=型Xの残数、N=総残数。二項分布ではない — 各抽出でデッキが変わる。",
-    s8title: "引用文献",
+    s8title2: "カードカウンター",
+    s8sub: "公開されたカードを記録。残りの引く確率を計算。",
+    s8revealed: "公開済み",
+    s8remaining: "デッキ残り",
+    s8odds: "引く確率",
+    s8revealNote: "騎士・街道・発見・独占は表向きでプレイ。勝利点は勝利宣言まで非公開。数えられるのは公開カードのみ。",
+    s8unrevealed: "未公開カードが関係ない理由",
+    s8unrevealedNote: "他プレイヤーの手札は非公開だが、デッキにはない。次に引けるのはデッキの中身だけ。騎士が6枚公開、自分の手札に1枚なら、デッキには14−6−1＝7枚。相手の手札は不明だが、どちらにせよデッキから除外済み。",
+    s8yourHand: "自分の手札（未プレイ）",
+    s8reset2: "リセット",
+    s9title: "引用文献",
     theory: "理論値",
     observed: "観測値",
     combinations: "通り",
@@ -475,6 +496,31 @@ function App() {
 
   // Section 7: proof accordion
   const [proofsOpen, setProofsOpen] = useState(false);
+
+  // Section 8: card counter
+  const ZERO_CARDS = { Knight: 0, "Victory Point": 0, "Road Building": 0, "Year of Plenty": 0, Monopoly: 0 };
+  const [revealed, setRevealed] = useState({ ...ZERO_CARDS });
+  const [held, setHeld] = useState({ ...ZERO_CARDS });
+  const incRevealed = (type) => setRevealed(r => {
+    const used = r[type] + held[type];
+    if (used >= DECK_INIT[type]) return r;
+    return { ...r, [type]: r[type] + 1 };
+  });
+  const decRevealed = (type) => setRevealed(r => ({ ...r, [type]: Math.max(0, r[type] - 1) }));
+  const incHeld = (type) => setHeld(h => {
+    const used = revealed[type] + h[type];
+    if (used >= DECK_INIT[type]) return h;
+    return { ...h, [type]: h[type] + 1 };
+  });
+  const decHeld = (type) => setHeld(h => ({ ...h, [type]: Math.max(0, h[type] - 1) }));
+  const resetCounter = () => { setRevealed({ ...ZERO_CARDS }); setHeld({ ...ZERO_CARDS }); };
+  const totalRevealed = Object.values(revealed).reduce((a, b) => a + b, 0);
+  const totalHeld = Object.values(held).reduce((a, b) => a + b, 0);
+  const deckRemaining = 25 - totalRevealed - totalHeld;
+  const deckComposition = {};
+  for (const type of Object.keys(DECK_INIT)) {
+    deckComposition[type] = DECK_INIT[type] - revealed[type] - held[type];
+  }
 
   // ── Section 3: animate 70 rolls ──────────────────────────────────────────
   const runSim = useCallback(() => {
@@ -1104,12 +1150,141 @@ function App() {
           )}
         </div>
 
-        {/* ══ Section 8: Citations ══ */}
+        {/* ══ Section 8: Card Counter ══ */}
+        <div style={{
+          background: C.panel, border: `1px solid ${C.border}`,
+          borderRadius: 4, padding: "20px 16px", marginBottom: 24,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>{t("s8title2")}</div>
+              <div style={{ fontSize: S.sm, color: C.muted }}>{t("s8sub")}</div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: S.base, fontFamily: F.mono, color: C.muted }}>
+                {deckRemaining} / 25 {t("s8remaining")}
+              </span>
+              <button onClick={resetCounter} style={{
+                padding: "10px 18px", background: "transparent",
+                border: `1px solid ${C.border}`, color: C.muted,
+                fontSize: S.sm, borderRadius: 2,
+              }}>{t("s8reset2")}</button>
+            </div>
+          </div>
+
+          {/* Revealed + Held counters */}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: S.sm, fontFamily: F.mono }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: "6px 8px", textAlign: "left", color: C.muted, borderBottom: `1px solid ${C.border}`, fontWeight: 400 }}></th>
+                  <th style={{ padding: "6px 8px", textAlign: "center", color: C.muted, borderBottom: `1px solid ${C.border}`, fontWeight: 400 }}>Total</th>
+                  <th style={{ padding: "6px 8px", textAlign: "center", color: C.amber, borderBottom: `1px solid ${C.border}`, fontWeight: 400 }}>{t("s8revealed")}</th>
+                  <th style={{ padding: "6px 8px", textAlign: "center", color: C.blue, borderBottom: `1px solid ${C.border}`, fontWeight: 400 }}>{t("s8yourHand")}</th>
+                  <th style={{ padding: "6px 8px", textAlign: "center", color: C.muted, borderBottom: `1px solid ${C.border}`, fontWeight: 400 }}>In Deck</th>
+                  <th style={{ padding: "6px 8px", textAlign: "center", color: C.green, borderBottom: `1px solid ${C.border}`, fontWeight: 400 }}>{t("s8odds")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(DECK_INIT).map(type => {
+                  const color = CARD_COLORS[type];
+                  const inDeck = deckComposition[type];
+                  const odds = deckRemaining > 0 ? (inDeck / deckRemaining * 100) : 0;
+                  const shortName = CARD_SHORT[type] || type;
+                  return (
+                    <tr key={type} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td style={{ padding: "8px 8px", color, fontWeight: 500 }}>{shortName}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "center", color: C.muted }}>{DECK_INIT[type]}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                          <button onClick={() => decRevealed(type)} style={{
+                            width: 28, height: 28, border: `1px solid ${C.border}`, background: "transparent",
+                            color: C.muted, fontSize: S.base, borderRadius: 3, minHeight: "auto",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>&minus;</button>
+                          <span style={{ color: C.amber, minWidth: 20, textAlign: "center" }}>{revealed[type]}</span>
+                          <button onClick={() => incRevealed(type)} style={{
+                            width: 28, height: 28, border: `1px solid ${color}`, background: "transparent",
+                            color, fontSize: S.base, borderRadius: 3, minHeight: "auto",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>+</button>
+                        </div>
+                      </td>
+                      <td style={{ padding: "8px 8px", textAlign: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                          <button onClick={() => decHeld(type)} style={{
+                            width: 28, height: 28, border: `1px solid ${C.border}`, background: "transparent",
+                            color: C.muted, fontSize: S.base, borderRadius: 3, minHeight: "auto",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>&minus;</button>
+                          <span style={{ color: C.blue, minWidth: 20, textAlign: "center" }}>{held[type]}</span>
+                          <button onClick={() => incHeld(type)} style={{
+                            width: 28, height: 28, border: `1px solid ${color}`, background: "transparent",
+                            color, fontSize: S.base, borderRadius: 3, minHeight: "auto",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>+</button>
+                        </div>
+                      </td>
+                      <td style={{ padding: "8px 8px", textAlign: "center", color: inDeck > 0 ? C.text : C.muted }}>{inDeck}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "center", color: C.green, fontWeight: 700 }}>
+                        {deckRemaining > 0 ? `${odds.toFixed(1)}%` : "\u2014"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Stacked remaining bar */}
+          {deckRemaining > 0 && (
+            <div style={{
+              display: "flex", height: 20, borderRadius: 3, overflow: "hidden",
+              marginTop: 14,
+            }}>
+              {Object.keys(DECK_INIT).map(type => {
+                const inDeck = deckComposition[type];
+                const pct = inDeck / deckRemaining * 100;
+                if (pct <= 0) return null;
+                return (
+                  <div key={type} style={{
+                    width: `${pct}%`, background: `${CARD_COLORS[type]}80`,
+                    transition: "width 0.3s",
+                  }} />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Reveal note */}
+          <div style={{
+            marginTop: 14, padding: "12px 16px", borderRadius: 4,
+            background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
+            fontFamily: ja ? F.body : F.serif, fontSize: S.base, color: "#94a3b8", lineHeight: 1.7,
+          }}>
+            {t("s8revealNote")}
+          </div>
+
+          {/* Why unrevealed don't matter */}
+          <div style={{
+            marginTop: 10, padding: "12px 16px", borderRadius: 4,
+            background: `${C.blue}08`, border: `1px solid ${C.blue}25`,
+          }}>
+            <div style={{ fontSize: S.sm, color: C.blue, letterSpacing: "0.08em", marginBottom: 6 }}>
+              {t("s8unrevealed")}
+            </div>
+            <div style={{ fontFamily: ja ? F.body : F.serif, fontSize: S.base, color: "#94a3b8", lineHeight: 1.7 }}>
+              {t("s8unrevealedNote")}
+            </div>
+          </div>
+        </div>
+
+        {/* ══ Section 9: Citations ══ */}
         <div style={{
           paddingTop: 16, borderTop: `1px solid ${C.border}`,
           fontSize: S.sm, color: C.muted, lineHeight: 2,
         }}>
-          <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>{t("s8title")}</div>
+          <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>{t("s9title")}</div>
           <div>[1] Feller, W. (1950). <em>An Introduction to Probability Theory and Its Applications,</em> Vol. I. Wiley.</div>
           <div>[2] Kahneman, D. (2011). <em>Thinking, Fast and Slow.</em> Farrar, Straus and Giroux. Ch. 10: The Law of Small Numbers.</div>
           <div>[3] Catan GmbH. <em>CATAN Official Rulebook,</em> 5th Ed. Deck: 14 Knights, 5 VPs, 2 Road Building, 2 Year of Plenty, 2 Monopoly.</div>
