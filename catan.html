@@ -206,11 +206,11 @@ function HistTooltip({ active, payload }) {
       <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>Sum: {s}</div>
       {d.theoretical != null && <div style={{ color: C.amber }}>Theory: {(d.theoretical < 1 ? (d.theoretical * 100).toFixed(2) : d.theoretical.toFixed(2))}% ({FRACTIONS[s]})</div>}
       {d.observed != null && <div style={{ color: C.blue }}>Observed: {d.observed} rolls ({d.obsPct}%)</div>}
-      <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
         {pairs.map(([a, b], j) => (
-          <span key={j} style={{ fontSize: 20, color, lineHeight: 1 }}>
+          <div key={j} style={{ fontSize: 20, color, lineHeight: 1 }}>
             {DICE_FACE[a]}{DICE_FACE[b]}
-          </span>
+          </div>
         ))}
       </div>
       <div style={{ fontSize: 9, color: C.muted, marginTop: 4 }}>
