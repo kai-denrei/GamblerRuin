@@ -70,35 +70,53 @@ function sumColor(s) {
   return C.muted;
 }
 
-// ── Sample space grid ────────────────────────────────────────────────────────
-function DiceGrid() {
-  const cells = [];
+// ── Unicode dice faces ───────────────────────────────────────────────────────
+const DICE_FACE = { 1: "\u2680", 2: "\u2681", 3: "\u2682", 4: "\u2683", 5: "\u2684", 6: "\u2685" };
+
+// All dice pairs grouped by sum
+function dicePairsForSum(s) {
+  const pairs = [];
   for (let a = 1; a <= 6; a++) {
-    for (let b = 1; b <= 6; b++) {
-      const s = a + b;
-      cells.push({ a, b, s });
-    }
+    const b = s - a;
+    if (b >= 1 && b <= 6) pairs.push([a, b]);
   }
+  return pairs;
+}
+
+// ── Sample space grid — dice combos by sum ──────────────────────────────────
+function DiceGrid() {
   return (
     <div style={{ marginTop: 16, marginBottom: 8 }}>
-      <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>
-        FULL SAMPLE SPACE — 36 EQUALLY LIKELY OUTCOMES
+      <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>
+        ALL COMBINATIONS BY SUM — UNICODE DICE
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 3, maxWidth: 300 }}>
-        {cells.map(({ a, b, s }, i) => (
-          <div key={i} style={{
-            width: "100%", aspectRatio: "1", display: "flex",
-            alignItems: "center", justifyContent: "center",
-            background: `${sumColor(s)}20`, border: `1px solid ${sumColor(s)}40`,
-            borderRadius: 3, fontSize: 11, fontFamily: "monospace",
-            color: sumColor(s),
-          }}>
-            {s}
-          </div>
-        ))}
-      </div>
-      <div style={{ fontSize: 10, color: C.muted, marginTop: 6 }}>
-        Row = die 1 (1-6), Column = die 2 (1-6). Color = sum.
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+        {Array.from({ length: 11 }, (_, i) => {
+          const s = i + 2;
+          const pairs = dicePairsForSum(s);
+          const color = sumColor(s);
+          return (
+            <div key={s} style={{
+              padding: "8px 12px", borderRadius: 4,
+              background: `${color}08`, border: `1px solid ${color}20`,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color, fontFamily: "monospace" }}>{s}</span>
+                <span style={{ fontSize: 9, color: C.muted, fontFamily: "monospace" }}>{FRACTIONS[s]} = {(THEORETICAL[s] * 100).toFixed(1)}%</span>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {pairs.map(([a, b], j) => (
+                  <span key={j} style={{
+                    fontSize: 20, letterSpacing: 1, color,
+                    lineHeight: 1,
+                  }} title={`${a} + ${b} = ${s}`}>
+                    {DICE_FACE[a]}{DICE_FACE[b]}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
