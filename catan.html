@@ -10,22 +10,26 @@
 <script src="https://unpkg.com/prop-types@15/prop-types.min.js" crossorigin></script>
 <script src="https://unpkg.com/recharts@2.15.3/umd/Recharts.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #070b14; }
+  body {
+    background: #0a0e18;
+    font-size: clamp(16px, 1.1vw + 14px, 18px);
+    line-height: 1.5;
+  }
   ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #070b14; }
+  ::-webkit-scrollbar-track { background: #0a0e18; }
   ::-webkit-scrollbar-thumb { background: #162035; border-radius: 2px; }
-  input[type=range] { accent-color: #f59e0b; cursor: pointer; }
-  button { cursor: pointer; }
+  input[type=range] { accent-color: #f59e0b; cursor: pointer; min-height: 44px; }
+  button { cursor: pointer; min-height: 44px; }
   .nav-bar {
     display: flex; gap: 0; border-bottom: 1px solid #162035;
     background: #0c1221; padding: 0 32px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', -apple-system, sans-serif;
   }
   .nav-bar a {
-    padding: 10px 20px; font-size: 11px; letter-spacing: 0.08em;
+    padding: 12px 20px; font-size: 13px; letter-spacing: 0.06em;
     text-decoration: none; color: #475569; border-bottom: 2px solid transparent;
     transition: color 0.15s, border-color 0.15s;
   }
@@ -46,12 +50,31 @@ const { BarChart, Bar, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 const C = {
-  bg: "#070b14", panel: "#0c1221", border: "#162035",
+  bg: "#0a0e18", panel: "#0f1525", border: "#1a2540",
   amber: "#f59e0b", green: "#10b981", red: "#ef4444",
-  blue: "#60a5fa", text: "#cbd5e1", muted: "#475569",
+  blue: "#60a5fa", text: "#d1d5e0", muted: "#6b7280",
   bright: "#f1f5f9", subtle: "#1e2d47",
   knight: "#60a5fa", vp: "#f59e0b", road: "#10b981",
   plenty: "#a78bfa", monopoly: "#ef4444",
+};
+
+// Font families
+const F = {
+  body: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+  mono: "'JetBrains Mono', monospace",
+  serif: "'Source Serif 4', serif",
+  display: "'Playfair Display', serif",
+};
+
+// Font sizes (consolidated scale — 6 sizes)
+const S = {
+  xs: 12,    // captions, fine labels
+  sm: 13,    // metadata, secondary labels
+  base: 15,  // body, UI text
+  md: 17,    // lead text, section intros
+  lg: 20,    // card titles, H3
+  xl: 24,    // H2, hero subtitle
+  xxl: 28,   // H1, display
 };
 
 // ── Dice math ────────────────────────────────────────────────────────────────
@@ -87,7 +110,7 @@ function dicePairsForSum(s) {
 function DiceGrid() {
   return (
     <div style={{ marginTop: 16, marginBottom: 8 }}>
-      <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>
+      <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>
         ALL COMBINATIONS BY SUM — UNICODE DICE
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
@@ -101,13 +124,13 @@ function DiceGrid() {
               background: `${color}08`, border: `1px solid ${color}20`,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color, fontFamily: "monospace" }}>{s}</span>
-                <span style={{ fontSize: 9, color: C.muted, fontFamily: "monospace" }}>{FRACTIONS[s]} = {(THEORETICAL[s] * 100).toFixed(1)}%</span>
+                <span style={{ fontSize: S.md, fontWeight: 700, color, fontFamily: "monospace" }}>{s}</span>
+                <span style={{ fontSize: S.xs, color: C.muted, fontFamily: "monospace" }}>{FRACTIONS[s]} = {(THEORETICAL[s] * 100).toFixed(1)}%</span>
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {pairs.map(([a, b], j) => (
                   <span key={j} style={{
-                    fontSize: 20, letterSpacing: 1, color,
+                    fontSize: S.lg, letterSpacing: 1, color,
                     lineHeight: 1,
                   }} title={`${a} + ${b} = ${s}`}>
                     {DICE_FACE[a]}{DICE_FACE[b]}
@@ -157,9 +180,9 @@ function InfoTip({ term, children }) {
           position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
           transform: "translateX(-50%)", width: 280, padding: "10px 12px",
           background: "#1a2540", border: `1px solid ${C.border}`,
-          borderRadius: 6, fontSize: 11, lineHeight: 1.6,
+          borderRadius: 6, fontSize: S.base, lineHeight: 1.6,
           color: C.text, zIndex: 1000, pointerEvents: "auto",
-          fontFamily: "'Source Serif 4', serif", fontWeight: 300,
+          fontFamily: F.serif, fontWeight: 300,
           boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
         }}>
           {desc}
@@ -201,19 +224,19 @@ function HistTooltip({ active, payload }) {
   return (
     <div style={{
       background: C.panel, border: `1px solid ${C.border}`,
-      padding: "10px 14px", fontFamily: "monospace", fontSize: 11,
+      padding: "10px 14px", fontFamily: F.mono, fontSize: S.base,
     }}>
       <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>Sum: {s}</div>
       {d.theoretical != null && <div style={{ color: C.amber }}>Theory: {(d.theoretical < 1 ? (d.theoretical * 100).toFixed(2) : d.theoretical.toFixed(2))}% ({FRACTIONS[s]})</div>}
       {d.observed != null && <div style={{ color: C.blue }}>Observed: {d.observed} rolls ({d.obsPct}%)</div>}
       <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
         {pairs.map(([a, b], j) => (
-          <div key={j} style={{ fontSize: 20, color, lineHeight: 1 }}>
+          <div key={j} style={{ fontSize: S.lg, color, lineHeight: 1 }}>
             {DICE_FACE[a]}{DICE_FACE[b]}
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 9, color: C.muted, marginTop: 4 }}>
+      <div style={{ fontSize: S.xs, color: C.muted, marginTop: 4 }}>
         {pairs.length} combination{pairs.length > 1 ? "s" : ""}
       </div>
     </div>
@@ -345,18 +368,18 @@ function App() {
   return (
     <div style={{
       background: C.bg, minHeight: "100vh", color: C.text,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontFamily: F.body, lineHeight: 1.5,
     }}>
 
       {/* ══ Section 1: Header ══ */}
       <div style={{ borderBottom: `1px solid ${C.border}`, padding: "28px 32px 20px" }}>
         <h1 style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: 24, fontWeight: 700, color: C.bright, marginBottom: 4,
+          fontFamily: F.display,
+          fontSize: S.xxl, fontWeight: 700, color: C.bright, marginBottom: 4,
         }}>
           The Dice Don't Care
         </h1>
-        <div style={{ color: C.muted, fontSize: 12, fontFamily: "'Playfair Display', serif", fontStyle: "italic", marginBottom: 14 }}>
+        <div style={{ color: C.muted, fontSize: S.base, fontFamily: F.display, fontStyle: "italic", marginBottom: 14 }}>
           A statistical anatomy of Settlers of Catan
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
@@ -364,35 +387,35 @@ function App() {
             <span key={tag} style={{
               padding: "3px 10px", borderRadius: 12,
               border: `1px solid ${C.amber}40`, color: C.amber,
-              fontSize: 9, letterSpacing: "0.1em",
+              fontSize: S.xs, letterSpacing: "0.1em",
             }}>{tag}</span>
           ))}
         </div>
-        <p style={{ color: C.muted, fontSize: 12, lineHeight: 1.7, maxWidth: 700, fontFamily: "'Source Serif 4', serif" }}>
+        <p style={{ color: C.muted, fontSize: S.base, lineHeight: 1.7, maxWidth: 700, fontFamily: "'Source Serif 4', serif" }}>
           Every number on the board, every card you buy, and every roll you're waiting on has an exact probability.
           Here's what the math actually says.
         </p>
       </div>
 
-      <div style={{ padding: "24px 32px", maxWidth: 1000, margin: "0 auto" }}>
+      <div style={{ padding: "clamp(16px, 4vw, 32px)", maxWidth: "min(90vw, 65ch)", margin: "0 auto" }}>
 
         {/* ══ Section 2: Theoretical Bell Curve ══ */}
         <div style={{
           background: C.panel, border: `1px solid ${C.border}`,
           borderRadius: 4, padding: "20px 16px", marginBottom: 24,
         }}>
-          <div style={{ fontSize: 12, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
+          <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
             The Theoretical Bell Curve
           </div>
-          <div style={{ fontSize: 10, color: C.muted, marginBottom: 16 }}>
+          <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
             Exact probability of each sum (2-12) from two six-sided dice &mdash; <InfoTip term="combinations">36 combinations</InfoTip>
           </div>
 
           <ResponsiveContainer width="100%" height={280}>
             <ComposedChart data={theoData} margin={{ left: 0, right: 16, top: 8, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-              <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }} />
-              <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }} domain={[0, 20]} />
+              <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: S.base, fontFamily: "monospace" }} />
+              <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }} domain={[0, 20]} />
               <Tooltip content={<HistTooltip />} />
               <Bar dataKey="prob" radius={[3, 3, 0, 0]} name="Probability">
                 {theoData.map((d, i) => <Cell key={i} fill={`${sumColor(d.sum)}90`} stroke={sumColor(d.sum)} />)}
@@ -404,7 +427,7 @@ function App() {
           {/* Fraction labels */}
           <div style={{ display: "flex", justifyContent: "space-around", margin: "8px 0 16px", padding: "0 30px" }}>
             {theoData.map(d => (
-              <div key={d.sum} style={{ textAlign: "center", fontSize: 9, fontFamily: "monospace" }}>
+              <div key={d.sum} style={{ textAlign: "center", fontSize: S.xs, fontFamily: "monospace" }}>
                 <div style={{ color: sumColor(d.sum) }}>{d.frac}</div>
                 <div style={{ color: C.muted }}>{d.prob.toFixed(1)}%</div>
               </div>
@@ -418,9 +441,9 @@ function App() {
           <div style={{
             marginTop: 16, padding: "12px 16px", borderRadius: 4,
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
-            fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
+            fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
-            7 is <span style={{ color: C.amber, fontFamily: "monospace", fontWeight: 700 }}>6x more likely</span> than 2 or 12.
+            7 is <span style={{ color: C.amber, fontFamily: F.mono, fontWeight: 700 }}>6x more likely</span> than 2 or 12.
             On any given roll, there is a <InfoTip term="robber"><span style={{ color: C.red, fontFamily: "monospace" }}>1-in-6 chance</span></InfoTip> the robber moves.
           </div>
         </div>
@@ -432,21 +455,21 @@ function App() {
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ fontSize: 12, color: C.bright, fontWeight: 500 }}>The 70-Roll Simulation</div>
-              <div style={{ fontSize: 10, color: C.muted }}>A typical 4-player game produces ~70 rolls</div>
+              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>The 70-Roll Simulation</div>
+              <div style={{ fontSize: S.sm, color: C.muted }}>A typical 4-player game produces ~70 rolls</div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {rolls.length > 0 && (
-                <span style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>
+                <span style={{ fontSize: S.base, color: C.muted, fontFamily: "monospace" }}>
                   Roll {rolls.length} of 70
                 </span>
               )}
               <button
                 onClick={runSim} disabled={rolling}
                 style={{
-                  padding: "5px 14px", background: "transparent",
+                  padding: "10px 18px", background: "transparent",
                   border: `1px solid ${C.amber}`, color: C.amber,
-                  fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+                  fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
                   opacity: rolling ? 0.5 : 1,
                 }}
               >
@@ -460,8 +483,8 @@ function App() {
               <ResponsiveContainer width="100%" height={240}>
                 <ComposedChart data={rollData} margin={{ left: 0, right: 16, top: 8, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                  <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }} />
-                  <YAxis tickFormatter={v => `${(v * 100).toFixed(0)}%`} tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }} domain={[0, 'auto']} />
+                  <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: S.base, fontFamily: "monospace" }} />
+                  <YAxis tickFormatter={v => `${(v * 100).toFixed(0)}%`} tick={{ fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }} domain={[0, 'auto']} />
                   <Tooltip content={<HistTooltip />} />
                   <Bar dataKey="obsFrac" radius={[3, 3, 0, 0]} name="Observed" fill={`${C.blue}70`} />
                   <Line type="monotone" dataKey="theoretical" stroke={C.amber} dot={false} strokeWidth={2} strokeDasharray="6 3" name="Theory" />
@@ -479,7 +502,7 @@ function App() {
                       <div key={d.sum} style={{
                         padding: "6px 10px", borderRadius: 3,
                         background: `${sumColor(d.sum)}08`, border: `1px solid ${sumColor(d.sum)}20`,
-                        fontSize: 10, fontFamily: "monospace",
+                        fontSize: S.sm, fontFamily: F.mono,
                       }}>
                         <span style={{ color: sumColor(d.sum) }}>{d.sum}:</span>
                         <span style={{ color: C.text }}> {d.observed}</span>
@@ -494,8 +517,8 @@ function App() {
           )}
 
           <div style={{
-            marginTop: 14, fontFamily: "'Source Serif 4', serif",
-            fontSize: 12, color: C.muted, lineHeight: 1.7, fontStyle: "italic",
+            marginTop: 14, fontFamily: F.serif,
+            fontSize: S.base, color: C.muted, lineHeight: 1.7, fontStyle: "italic",
           }}>
             Seventy rolls is a small sample. The shape is recognizable but noisy &mdash; some numbers may never appear,
             others may double their expected count. This is normal.
@@ -507,10 +530,10 @@ function App() {
           background: C.panel, border: `1px solid ${C.border}`,
           borderRadius: 4, padding: "20px 16px", marginBottom: 24,
         }}>
-          <div style={{ fontSize: 12, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
+          <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
             How Many Rolls Until the Bell Curve Looks Clean?
           </div>
-          <div style={{ fontSize: 10, color: C.muted, marginBottom: 16 }}>
+          <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
             The Law of Large Numbers in action &mdash; convergence to the theoretical distribution
           </div>
 
@@ -522,7 +545,7 @@ function App() {
                 background: convN === n ? `${C.amber}20` : "transparent",
                 border: `1px solid ${convN === n ? C.amber : C.border}`,
                 color: convN === n ? C.amber : C.muted,
-                fontSize: 11, fontFamily: "monospace",
+                fontSize: S.base, fontFamily: F.mono,
               }}>
                 {n.toLocaleString()}
               </button>
@@ -533,8 +556,8 @@ function App() {
             <ResponsiveContainer width="100%" height={240}>
               <ComposedChart data={convData} margin={{ left: 0, right: 16, top: 8, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: 11, fontFamily: "monospace" }} />
-                <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }} domain={[0, 'auto']} />
+                <XAxis dataKey="sum" tick={{ fill: C.muted, fontSize: S.base, fontFamily: "monospace" }} />
+                <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }} domain={[0, 'auto']} />
                 <Tooltip content={<HistTooltip />} />
                 <Bar dataKey="observed" radius={[3, 3, 0, 0]} name="Observed" fill={`${C.blue}70`} />
                 <Line type="monotone" dataKey="theoretical" stroke={C.amber} dot={false} strokeWidth={2} strokeDasharray="6 3" />
@@ -548,7 +571,7 @@ function App() {
           }}>
             <div style={{
               padding: "8px 14px", borderRadius: 4, background: C.subtle,
-              fontFamily: "monospace", fontSize: 12,
+              fontFamily: F.mono, fontSize: S.base,
             }}>
               <InfoTip term="chi2"><span style={{ color: C.muted }}>chi-squared</span></InfoTip>
               <span style={{ color: convChi2 < 18.3 ? C.green : C.red, fontWeight: 700, marginLeft: 8 }}>
@@ -558,14 +581,14 @@ function App() {
                 {convChi2 < 18.3 ? "no significant deviation" : "significant deviation from theory"}
               </span>
             </div>
-            <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>
+            <div style={{ fontSize: S.sm, color: C.muted, fontFamily: "monospace" }}>
               n = {convN.toLocaleString()} rolls
             </div>
           </div>
 
           <div style={{
-            marginTop: 12, fontFamily: "'Source Serif 4', serif",
-            fontSize: 12, color: C.muted, lineHeight: 1.7, fontStyle: "italic",
+            marginTop: 12, fontFamily: F.serif,
+            fontSize: S.base, color: C.muted, lineHeight: 1.7, fontStyle: "italic",
           }}>
             {convText}
           </div>
@@ -574,7 +597,7 @@ function App() {
           <div style={{
             marginTop: 14, padding: "12px 16px", borderRadius: 4,
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
-            fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
+            fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
             <span style={{ color: C.amber, fontWeight: 700, fontFamily: "monospace" }}>Minimum for a visually clean bell curve: ~360 rolls</span> (~5 full games).
             Probability theory needs patience.
@@ -586,10 +609,10 @@ function App() {
           background: C.panel, border: `1px solid ${C.border}`,
           borderRadius: 4, padding: "20px 16px", marginBottom: 24,
         }}>
-          <div style={{ fontSize: 12, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
+          <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500, marginBottom: 4 }}>
             The <InfoTip term="gambler">Gambler's Fallacy</InfoTip>
           </div>
-          <div style={{ fontSize: 10, color: C.muted, marginBottom: 16 }}>
+          <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 16 }}>
             Why streaks do not change the next roll's probability
           </div>
 
@@ -600,14 +623,14 @@ function App() {
                 width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
                 background: r === 7 ? `${C.amber}30` : C.subtle,
                 border: `1px solid ${r === 7 ? C.amber : C.border}`,
-                borderRadius: 3, fontSize: 11, fontFamily: "monospace",
+                borderRadius: 3, fontSize: S.base, fontFamily: F.mono,
                 color: r === 7 ? C.amber : C.text,
               }}>
                 {r}
               </div>
             ))}
             {streak.length === 0 && (
-              <div style={{ fontSize: 10, color: C.muted, fontStyle: "italic", paddingTop: 6 }}>
+              <div style={{ fontSize: S.sm, color: C.muted, fontStyle: "italic", paddingTop: 6 }}>
                 No rolls yet. Click a button below to start.
               </div>
             )}
@@ -616,19 +639,19 @@ function App() {
           {/* Buttons */}
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             <button onClick={addRoll} style={{
-              padding: "5px 14px", background: "transparent",
+              padding: "10px 18px", background: "transparent",
               border: `1px solid ${C.green}`, color: C.green,
-              fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+              fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
             }}>ADD ROLL</button>
             <button onClick={addNon7} style={{
-              padding: "5px 14px", background: "transparent",
+              padding: "10px 18px", background: "transparent",
               border: `1px solid ${C.red}`, color: C.red,
-              fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+              fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
             }}>STREAK: NO 7</button>
             <button onClick={() => setStreak([])} style={{
-              padding: "5px 14px", background: "transparent",
+              padding: "10px 18px", background: "transparent",
               border: `1px solid ${C.border}`, color: C.muted,
-              fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+              fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
             }}>RESET</button>
           </div>
 
@@ -640,7 +663,7 @@ function App() {
               non7++;
             }
             return non7 > 0 ? (
-              <div style={{ fontSize: 10, color: C.red, marginBottom: 12, fontFamily: "monospace" }}>
+              <div style={{ fontSize: S.sm, color: C.red, marginBottom: 12, fontFamily: "monospace" }}>
                 Current streak without a 7: {non7} roll{non7 > 1 ? "s" : ""}
               </div>
             ) : null;
@@ -652,13 +675,13 @@ function App() {
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
             textAlign: "center", marginBottom: 16,
           }}>
-            <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>
+            <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>
               P(NEXT ROLL = 7)
             </div>
-            <div style={{ fontSize: 32, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>
+            <div style={{ fontSize: 36, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>
               16.67%
             </div>
-            <div style={{ fontSize: 11, color: C.red, marginTop: 8, fontFamily: "'Source Serif 4', serif" }}>
+            <div style={{ fontSize: S.base, color: C.red, marginTop: 8, fontFamily: "'Source Serif 4', serif" }}>
               Even after {streak.filter(r => r !== 7).length > 10 ? streak.filter(r => r !== 7).length : "20"} rolls with no 7,
               the next roll's probability is identical.
             </div>
@@ -670,11 +693,11 @@ function App() {
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
               borderRadius: 4, padding: "14px 16px",
             }}>
-              <div style={{ fontSize: 10, color: C.red, letterSpacing: "0.1em", marginBottom: 8 }}>WHAT PEOPLE BELIEVE</div>
-              <div style={{ fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
+              <div style={{ fontSize: S.sm, color: C.red, letterSpacing: "0.1em", marginBottom: 8 }}>WHAT PEOPLE BELIEVE</div>
+              <div style={{ fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
                 "It's due for a 7"
               </div>
-              <div style={{ fontFamily: "monospace", fontSize: 16, color: C.red, fontWeight: 700 }}>
+              <div style={{ fontFamily: F.mono, fontSize: S.lg, color: C.red, fontWeight: 700 }}>
                 Wrongly implied P ~ 40%
               </div>
             </div>
@@ -682,11 +705,11 @@ function App() {
               background: `${C.green}08`, border: `1px solid ${C.green}25`,
               borderRadius: 4, padding: "14px 16px",
             }}>
-              <div style={{ fontSize: 10, color: C.green, letterSpacing: "0.1em", marginBottom: 8 }}>WHAT THE DICE KNOW</div>
-              <div style={{ fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
+              <div style={{ fontSize: S.sm, color: C.green, letterSpacing: "0.1em", marginBottom: 8 }}>WHAT THE DICE KNOW</div>
+              <div style={{ fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.6, marginBottom: 8 }}>
                 <InfoTip term="independent">Independent trials</InfoTip>
               </div>
-              <div style={{ fontFamily: "monospace", fontSize: 16, color: C.green, fontWeight: 700 }}>
+              <div style={{ fontFamily: F.mono, fontSize: S.lg, color: C.green, fontWeight: 700 }}>
                 P = 16.67%, always
               </div>
             </div>
@@ -700,19 +723,19 @@ function App() {
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ fontSize: 12, color: C.bright, fontWeight: 500 }}>Development Card Probability</div>
-              <div style={{ fontSize: 10, color: C.muted }}>
+              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>Development Card Probability</div>
+              <div style={{ fontSize: S.sm, color: C.muted }}>
                 <InfoTip term="hypergeometric">Drawing without replacement</InfoTip> from a {deckTotal}-card deck
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontSize: 11, fontFamily: "monospace", color: C.muted }}>
+              <span style={{ fontSize: S.base, fontFamily: F.mono, color: C.muted }}>
                 {deckTotal} / 25 remaining
               </span>
               <button onClick={resetDeck} style={{
-                padding: "5px 14px", background: "transparent",
+                padding: "10px 18px", background: "transparent",
                 border: `1px solid ${C.border}`, color: C.muted,
-                fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+                fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
               }}>RESET DECK</button>
             </div>
           </div>
@@ -729,7 +752,7 @@ function App() {
                 <div key={type} style={{
                   width: `${pct}%`, background: `${CARD_COLORS[type]}80`,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 8, color: C.bright, letterSpacing: "0.05em",
+                  fontSize: S.xs, color: C.bright, letterSpacing: "0.05em",
                   transition: "width 0.3s",
                   overflow: "hidden", whiteSpace: "nowrap",
                 }}>
@@ -750,20 +773,20 @@ function App() {
                   background: `${color}08`, border: `1px solid ${color}25`,
                   borderRadius: 4, padding: "12px 14px",
                 }}>
-                  <div style={{ fontSize: 10, color, letterSpacing: "0.08em", marginBottom: 4 }}>
+                  <div style={{ fontSize: S.sm, color, letterSpacing: "0.08em", marginBottom: 4 }}>
                     {isVP ? <InfoTip term="vp">{type.toUpperCase()}</InfoTip> : type.toUpperCase()}
                   </div>
-                  <div style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 700, color, marginBottom: 4 }}>
+                  <div style={{ fontFamily: F.mono, fontSize: S.xl, fontWeight: 700, color, marginBottom: 4 }}>
                     {pct.toFixed(1)}%
                   </div>
-                  <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace", marginBottom: 8 }}>
+                  <div style={{ fontSize: S.sm, color: C.muted, fontFamily: F.mono, marginBottom: 8 }}>
                     {count} / {deckTotal} cards
                   </div>
                   <button onClick={() => drawCard(type)} disabled={count <= 0} style={{
-                    padding: "4px 10px", background: "transparent",
+                    padding: "8px 14px", background: "transparent",
                     border: `1px solid ${count > 0 ? color : C.border}`,
                     color: count > 0 ? color : C.muted,
-                    fontSize: 9, letterSpacing: "0.06em", borderRadius: 2,
+                    fontSize: S.xs, letterSpacing: "0.06em", borderRadius: 2,
                     opacity: count <= 0 ? 0.4 : 1, width: "100%",
                   }}>
                     + DRAW
@@ -778,7 +801,7 @@ function App() {
             <div style={{
               padding: "10px 14px", borderRadius: 4,
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
-              fontSize: 11, color: C.red, fontFamily: "monospace",
+              fontSize: S.base, color: C.red, fontFamily: F.mono,
             }}>
               <InfoTip term="largestArmy">Largest Army</InfoTip> is now contested &mdash; only {knightsLeft} knight{knightsLeft > 1 ? "s" : ""} left in the deck
             </div>
@@ -787,7 +810,7 @@ function App() {
             <div style={{
               padding: "10px 14px", borderRadius: 4,
               background: `${C.red}08`, border: `1px solid ${C.red}25`,
-              fontSize: 11, color: C.red, fontFamily: "monospace",
+              fontSize: S.base, color: C.red, fontFamily: F.mono,
             }}>
               All Knights have been drawn. <InfoTip term="largestArmy">Largest Army</InfoTip> is locked &mdash; no new challengers possible.
             </div>
@@ -797,7 +820,7 @@ function App() {
           <div style={{
             marginTop: 14, padding: "12px 16px", borderRadius: 4,
             background: `${C.amber}08`, border: `1px solid ${C.amber}25`,
-            fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
+            fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
             Your first card has a <span style={{ color: C.knight, fontFamily: "monospace" }}>56%</span> chance of being a Knight
             and only an <span style={{ color: C.monopoly, fontFamily: "monospace" }}>8%</span> chance of being a Monopoly.
@@ -818,10 +841,10 @@ function App() {
               alignItems: "center", color: C.text,
             }}
           >
-            <span style={{ fontSize: 10, letterSpacing: "0.12em", color: C.amber }}>
+            <span style={{ fontSize: S.sm, letterSpacing: "0.12em", color: C.amber }}>
               PROOF STEPS &mdash; Mathematical Foundation
             </span>
-            <span style={{ fontSize: 10, color: C.muted }}>{proofsOpen ? "collapse" : "expand"}</span>
+            <span style={{ fontSize: S.sm, color: C.muted }}>{proofsOpen ? "collapse" : "expand"}</span>
           </button>
           {proofsOpen && (
             <div style={{ padding: "16px 20px" }}>
@@ -852,16 +875,16 @@ function App() {
                   borderLeft: `2px solid ${C.subtle}`,
                 }}>
                   <div style={{
-                    fontSize: 10, letterSpacing: "0.1em", color: C.amber,
-                    fontFamily: "monospace", marginBottom: 6,
+                    fontSize: S.sm, letterSpacing: "0.1em", color: C.amber,
+                    fontFamily: F.mono, marginBottom: 6,
                   }}>{id}</div>
                   <div style={{
-                    fontFamily: "'Source Serif 4', serif",
-                    fontSize: 13, lineHeight: 1.75, color: "#94a3b8",
+                    fontFamily: F.serif,
+                    fontSize: S.md, lineHeight: 1.75, color: "#94a3b8",
                   }}>{claim}</div>
                   <div style={{
-                    fontSize: 11, color: C.muted, marginTop: 6,
-                    fontFamily: "'Source Serif 4', serif", fontStyle: "italic",
+                    fontSize: S.base, color: C.muted, marginTop: 6,
+                    fontFamily: F.serif, fontStyle: "italic",
                   }}>&#8627; {source}</div>
                 </div>
               ))}
@@ -872,7 +895,7 @@ function App() {
         {/* ══ Section 8: Citations ══ */}
         <div style={{
           paddingTop: 16, borderTop: `1px solid ${C.border}`,
-          fontSize: 10, color: C.muted, lineHeight: 2,
+          fontSize: S.sm, color: C.muted, lineHeight: 2,
         }}>
           <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>CITATIONS</div>
           <div>[1] Feller, W. (1950). <em>An Introduction to Probability Theory and Its Applications,</em> Vol. I. Wiley.</div>

@@ -10,22 +10,26 @@
 <script src="https://unpkg.com/prop-types@15/prop-types.min.js" crossorigin></script>
 <script src="https://unpkg.com/recharts@2.15.3/umd/Recharts.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #070b14; }
+  body {
+    background: #0a0e18;
+    font-size: clamp(16px, 1.1vw + 14px, 18px);
+    line-height: 1.5;
+  }
   ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #070b14; }
+  ::-webkit-scrollbar-track { background: #0a0e18; }
   ::-webkit-scrollbar-thumb { background: #162035; border-radius: 2px; }
-  input[type=range] { accent-color: #f59e0b; cursor: pointer; }
-  button { cursor: pointer; }
+  input[type=range] { accent-color: #f59e0b; cursor: pointer; min-height: 44px; }
+  button { cursor: pointer; min-height: 44px; }
   .nav-bar {
     display: flex; gap: 0; border-bottom: 1px solid #162035;
     background: #0c1221; padding: 0 32px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', -apple-system, sans-serif;
   }
   .nav-bar a {
-    padding: 10px 20px; font-size: 11px; letter-spacing: 0.08em;
+    padding: 12px 20px; font-size: 13px; letter-spacing: 0.06em;
     text-decoration: none; color: #475569; border-bottom: 2px solid transparent;
     transition: color 0.15s, border-color 0.15s;
   }
@@ -88,10 +92,21 @@ const { useState, useEffect, useCallback, useMemo, useRef } = React;
 const { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
 
 const C = {
-  bg: "#070b14", panel: "#0c1221", border: "#162035",
+  bg: "#0a0e18", panel: "#0f1525", border: "#1a2540",
   amber: "#f59e0b", green: "#10b981", red: "#ef4444",
-  blue: "#60a5fa", text: "#cbd5e1", muted: "#475569",
+  blue: "#60a5fa", text: "#d1d5e0", muted: "#6b7280",
   bright: "#f1f5f9", subtle: "#1e2d47",
+};
+
+const F = {
+  body: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+  mono: "'JetBrains Mono', monospace",
+  serif: "'Source Serif 4', serif",
+  display: "'Playfair Display', serif",
+};
+
+const S = {
+  xs: 12, sm: 13, base: 15, md: 17, lg: 20, xl: 24, xxl: 28,
 };
 
 const edgeToP = e => (1 + e) / 2;
@@ -202,9 +217,9 @@ function InfoTip({ term, children }) {
           position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
           transform: "translateX(-50%)", width: 260, padding: "10px 12px",
           background: "#1a2540", border: `1px solid ${C.border}`,
-          borderRadius: 6, fontSize: 11, lineHeight: 1.6,
+          borderRadius: 6, fontSize: S.base, lineHeight: 1.6,
           color: C.text, zIndex: 1000, pointerEvents: "auto",
-          fontFamily: "'Source Serif 4', serif", fontWeight: 300,
+          fontFamily: F.serif, fontWeight: 300,
           boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
         }}>
           {desc}
@@ -257,7 +272,7 @@ function App() {
     return (
       <div style={{
         background: C.panel, border: `1px solid ${C.border}`,
-        padding: "8px 12px", fontFamily: "monospace", fontSize: 11,
+        padding: "8px 12px", fontFamily: F.mono, fontSize: S.base,
       }}>
         <div style={{ color: C.muted, marginBottom: 4 }}>Bet size</div>
         <div style={{ color: C.bright, fontWeight: "bold", marginBottom: 6 }}>{fmt(k)}</div>
@@ -367,39 +382,39 @@ function App() {
   return (
     <div style={{
       background: C.bg, minHeight: "100vh", color: C.text,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontFamily: F.body, lineHeight: 1.5,
     }}>
       {/* Header */}
       <div style={{ borderBottom: `1px solid ${C.border}`, padding: "20px 32px 16px" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
           <h1 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: 20, fontWeight: 700, color: C.bright,
+            fontFamily: F.display,
+            fontSize: S.xl, fontWeight: 700, color: C.bright,
           }}>
             Bold Play vs. Timid Play in Negative-EV Games
           </h1>
-          <span style={{ color: C.muted, fontSize: 10, letterSpacing: "0.06em" }}>
+          <span style={{ color: C.muted, fontSize: S.sm, letterSpacing: "0.06em" }}>
             DUBINS & SAVAGE · 1965
           </span>
         </div>
-        <p style={{ color: C.muted, fontSize: 11, marginTop: 6, lineHeight: 1.6, maxWidth: 640 }}>
+        <p style={{ color: C.muted, fontSize: S.base, marginTop: 6, lineHeight: 1.6, maxWidth: 640 }}>
           In a <InfoTip term="subfair">subfair game</InfoTip>, P(reach target T) is strictly increasing in bet size.
           Larger bets are not riskier relative to goal — they are optimal.
           This simulation proves the claim via closed-form and Monte Carlo.
         </p>
       </div>
 
-      <div style={{ padding: "24px 32px", maxWidth: 1000, margin: "0 auto" }}>
+      <div style={{ padding: "clamp(16px, 4vw, 32px)", maxWidth: "min(90vw, 65ch)", margin: "0 auto" }}>
 
         {/* Parameters */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
           {/* Bankroll */}
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em" }}>
+              <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.06em" }}>
                 <InfoTip term="B">Starting Bankroll (B)</InfoTip>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{fmt(B)}</div>
+              <div style={{ fontSize: S.md, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{fmt(B)}</div>
             </div>
             <input type="range" min={1e6} max={50e6} step={1e6} value={B}
               onChange={e => setB(Number(e.target.value))} style={{ width: "100%" }} />
@@ -407,11 +422,11 @@ function App() {
           {/* Target */}
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em" }}>
+              <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.06em" }}>
                 <InfoTip term="T">Target (T)</InfoTip>
                 <span style={{ marginLeft: 6, color: C.muted, fontSize: 10 }}>({(safeT / B).toFixed(0)}x bankroll)</span>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{fmt(safeT)}</div>
+              <div style={{ fontSize: S.md, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{fmt(safeT)}</div>
             </div>
             <input type="range" min={10e6} max={500e6} step={10e6} value={T}
               onChange={e => setT(Math.max(Number(e.target.value), B * 2))} style={{ width: "100%" }} />
@@ -419,12 +434,12 @@ function App() {
           {/* Edge */}
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em" }}>
+              <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.06em" }}>
                 <InfoTip term="edge">House Edge</InfoTip>
                 {" · "}
                 <InfoTip term="p">p</InfoTip> = {edgeToP(edge).toFixed(4)}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{(edge * 100).toFixed(2)}%</div>
+              <div style={{ fontSize: S.md, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{(edge * 100).toFixed(2)}%</div>
             </div>
             <input type="range" min={-0.05} max={-0.001} step={0.001} value={edge}
               onChange={e => setEdge(Number(e.target.value))} style={{ width: "100%" }} />
@@ -432,10 +447,10 @@ function App() {
           {/* MC Trials */}
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.06em" }}>
+              <div style={{ fontSize: S.sm, color: C.muted, letterSpacing: "0.06em" }}>
                 <InfoTip term="mcTrials">Monte Carlo Trials</InfoTip> per point
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{mcTrials.toLocaleString()}</div>
+              <div style={{ fontSize: S.md, fontWeight: 700, color: C.amber, fontFamily: "monospace" }}>{mcTrials.toLocaleString()}</div>
             </div>
             <input type="range" min={1000} max={20000} step={1000} value={mcTrials}
               onChange={e => setMcTrials(Number(e.target.value))} style={{ width: "100%" }} />
@@ -453,10 +468,10 @@ function App() {
             flexWrap: "wrap", gap: 12,
           }}>
             <div>
-              <div style={{ fontSize: 12, color: C.bright, fontWeight: 500 }}>
+              <div style={{ fontSize: S.base, color: C.bright, fontWeight: 500 }}>
                 P(reach {fmt(safeT)}) vs. Bet Size
               </div>
-              <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>
+              <div style={{ fontSize: S.sm, color: C.muted, marginTop: 3 }}>
                 B = {fmt(B)} · edge = {(edge * 100).toFixed(2)}% · bold play = {fmt(B)}
               </div>
               <div style={{
@@ -464,13 +479,13 @@ function App() {
                 background: `${C.red}12`, border: `1px solid ${C.red}30`,
                 display: "flex", gap: 16, alignItems: "baseline", flexWrap: "wrap",
               }}>
-                <div style={{ fontSize: 10, color: C.red, letterSpacing: "0.08em" }}>
+                <div style={{ fontSize: S.sm, color: C.red, letterSpacing: "0.08em" }}>
                   BEST CASE (BOLD PLAY)
                 </div>
                 <div style={{ fontFamily: "monospace" }}>
                   <span style={{ color: C.green, fontSize: 13 }}>P(target) = {(boldP * 100).toFixed(2)}%</span>
                   <span style={{ color: C.muted, margin: "0 8px" }}>|</span>
-                  <span style={{ color: C.red, fontSize: 15, fontWeight: 700 }}>P(ruin) = {(ruinP * 100).toFixed(2)}%</span>
+                  <span style={{ color: C.red, fontSize: S.lg, fontWeight: 700 }}>P(ruin) = {(ruinP * 100).toFixed(2)}%</span>
                 </div>
               </div>
             </div>
@@ -478,9 +493,9 @@ function App() {
               <button
                 onClick={() => setLogY(v => !v)}
                 style={{
-                  padding: "5px 12px", background: "transparent",
+                  padding: "10px 16px", background: "transparent",
                   border: `1px solid ${C.muted}`, color: C.muted,
-                  fontSize: 10, letterSpacing: "0.06em", borderRadius: 2,
+                  fontSize: S.sm, letterSpacing: "0.06em", borderRadius: 2,
                 }}
               >
                 Y: {logY ? "LOG" : "LINEAR"}
@@ -489,9 +504,9 @@ function App() {
                 <button
                   onClick={cancelMC}
                   style={{
-                    padding: "5px 14px", background: "transparent",
+                    padding: "10px 18px", background: "transparent",
                     border: `1px solid ${C.red}`, color: C.red,
-                    fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+                    fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
                   }}
                 >
                   CANCEL
@@ -500,9 +515,9 @@ function App() {
                 <button
                   onClick={handleMC}
                   style={{
-                    padding: "5px 14px", background: "transparent",
+                    padding: "10px 18px", background: "transparent",
                     border: `1px solid ${C.green}`, color: C.green,
-                    fontSize: 10, letterSpacing: "0.08em", borderRadius: 2,
+                    fontSize: S.sm, letterSpacing: "0.08em", borderRadius: 2,
                   }}
                 >
                   RUN MONTE CARLO
@@ -513,10 +528,10 @@ function App() {
 
           {/* Legend */}
           <div style={{ display: "flex", gap: 20, marginBottom: 12, paddingLeft: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.muted }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: S.sm, color: C.muted }}>
               <div style={{ width: 24, height: 2, background: C.amber }} /> <InfoTip term="closedForm">Closed-form exact</InfoTip>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.muted }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: S.sm, color: C.muted }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} />
               <InfoTip term="monteCarlo">Monte Carlo</InfoTip> (auto-scaled trials/pt)
             </div>
@@ -528,16 +543,16 @@ function App() {
               <XAxis
                 dataKey="k" scale="log" domain={["auto", "auto"]} type="number"
                 tickFormatter={v => fmt(v)}
-                tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
-                label={{ value: "Bet Size  (log scale)", position: "insideBottom", offset: -28, fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
+                tick={{ fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }}
+                label={{ value: "Bet Size  (log scale)", position: "insideBottom", offset: -28, fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }}
               />
               <YAxis
                 scale={logY ? "log" : "linear"}
                 domain={logY ? ["auto", "auto"] : [0, "auto"]}
                 allowDataOverflow
                 tickFormatter={v => `${v.toFixed(logY ? 4 : 2)}%`}
-                tick={{ fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
-                label={{ value: "P(reach target)", angle: -90, position: "insideLeft", offset: 12, fill: C.muted, fontSize: 10, fontFamily: "monospace" }}
+                tick={{ fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }}
+                label={{ value: "P(reach target)", angle: -90, position: "insideLeft", offset: 12, fill: C.muted, fontSize: S.sm, fontFamily: "monospace" }}
               />
               <Tooltip content={renderTooltip} />
               <Line type="monotone" dataKey="cf" stroke={C.amber} dot={false} strokeWidth={2} name="Closed-form" />
@@ -547,7 +562,7 @@ function App() {
             </ComposedChart>
           </ResponsiveContainer>
 
-          <div style={{ textAlign: "center", fontSize: 10, color: C.muted, marginTop: 8, letterSpacing: "0.08em" }}>
+          <div style={{ textAlign: "center", fontSize: S.sm, color: C.muted, marginTop: 8, letterSpacing: "0.08em" }}>
             {mcRunning ? mcProgress : mcDots.length === 0
               ? 'Closed-form curve loaded. Press "RUN MONTE CARLO" to overlay verification dots.'
               : `${mcDots.length} Monte Carlo points overlaid.`}
@@ -567,10 +582,10 @@ function App() {
               alignItems: "center", color: C.text,
             }}
           >
-            <span style={{ fontSize: 10, letterSpacing: "0.12em", color: C.amber }}>
+            <span style={{ fontSize: S.sm, letterSpacing: "0.12em", color: C.amber }}>
               REASONING BLOCK — Mathematical Foundation (sources cited before computation)
             </span>
-            <span style={{ fontSize: 10, color: C.muted }}>{reasonOpen ? "collapse" : "expand"}</span>
+            <span style={{ fontSize: S.sm, color: C.muted }}>{reasonOpen ? "collapse" : "expand"}</span>
           </button>
           {reasonOpen && (
             <div style={{ padding: "16px 20px" }}>
@@ -580,16 +595,16 @@ function App() {
                   borderLeft: `2px solid ${C.subtle}`,
                 }}>
                   <div style={{
-                    fontSize: 10, letterSpacing: "0.1em", color: C.amber,
-                    fontFamily: "monospace", marginBottom: 6,
+                    fontSize: S.sm, letterSpacing: "0.1em", color: C.amber,
+                    fontFamily: F.mono, marginBottom: 6,
                   }}>{id}</div>
                   <div style={{
-                    fontFamily: "'Source Serif 4', serif",
-                    fontSize: 13, lineHeight: 1.75, color: "#94a3b8",
+                    fontFamily: F.serif,
+                    fontSize: S.md, lineHeight: 1.75, color: "#94a3b8",
                   }}>{claim}</div>
                   <div style={{
-                    fontSize: 11, color: C.muted, marginTop: 6,
-                    fontFamily: "'Source Serif 4', serif", fontStyle: "italic",
+                    fontSize: S.base, color: C.muted, marginTop: 6,
+                    fontFamily: F.serif, fontStyle: "italic",
                   }}>&#8627; {source}</div>
                 </div>
               ))}
@@ -602,18 +617,18 @@ function App() {
           border: `1px solid ${C.amber}30`, borderRadius: 4,
           padding: "18px 20px", marginBottom: 24, background: `${C.amber}06`,
         }}>
-          <div style={{ fontSize: 10, color: C.amber, letterSpacing: "0.14em", marginBottom: 12 }}>
+          <div style={{ fontSize: S.sm, color: C.amber, letterSpacing: "0.14em", marginBottom: 12 }}>
             THE DUBINS-SAVAGE DEMONSTRATION
           </div>
           <div style={{
-            fontFamily: "'Source Serif 4', serif",
-            color: "#94a3b8", fontSize: 14, marginBottom: 4, lineHeight: 1.6,
+            fontFamily: F.serif,
+            color: "#94a3b8", fontSize: S.md, marginBottom: 4, lineHeight: 1.6,
           }}>
             "Would you rather have 400 attempts at £25k, or 100 attempts at £100k?"
           </div>
           <div style={{
-            fontFamily: "'Source Serif 4', serif",
-            color: C.muted, fontSize: 12, marginBottom: 20,
+            fontFamily: F.serif,
+            color: C.muted, fontSize: S.base, marginBottom: 20,
           }}>
             Both start at {fmt(B)}, target {fmt(safeT)}, edge {(edge * 100).toFixed(2)}%.
             Intuition says more attempts = better. The math disagrees.
@@ -628,19 +643,19 @@ function App() {
                 background: C.panel, border: `1px solid ${color}30`,
                 borderRadius: 4, padding: "14px 16px",
               }}>
-                <div style={{ fontSize: 10, color, letterSpacing: "0.1em", marginBottom: 4 }}><InfoTip term={tip}>{label}</InfoTip></div>
-                <div style={{ fontSize: 10, color: C.muted, marginBottom: 14 }}>{sublabel}</div>
-                <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Closed-form P(reach T)</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color, marginBottom: 10, fontFamily: "monospace" }}>
+                <div style={{ fontSize: S.sm, color, letterSpacing: "0.1em", marginBottom: 4 }}><InfoTip term={tip}>{label}</InfoTip></div>
+                <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 14 }}>{sublabel}</div>
+                <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 4 }}>Closed-form P(reach T)</div>
+                <div style={{ fontSize: S.xl, fontWeight: 700, color, marginBottom: 10, fontFamily: "monospace" }}>
                   {pct(cf, cf < 1e-10 ? 15 : 8)}
                 </div>
-                <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Monte Carlo P</div>
-                <div style={{ fontSize: 14, color: mcV !== null ? color : C.muted, fontFamily: "monospace" }}>
+                <div style={{ fontSize: S.sm, color: C.muted, marginBottom: 4 }}>Monte Carlo P</div>
+                <div style={{ fontSize: S.md, color: mcV !== null ? color : C.muted, fontFamily: "monospace" }}>
                   {mcV !== null ? pct(mcV, 4) : "computing..."}
                 </div>
                 <div style={{
-                  marginTop: 12, fontSize: 11, color: C.muted,
-                  fontFamily: "'Source Serif 4', serif", lineHeight: 1.5,
+                  marginTop: 12, fontSize: S.base, color: C.muted,
+                  fontFamily: F.serif, lineHeight: 1.5,
                 }}>
                   {verdict}
                 </div>
@@ -650,11 +665,11 @@ function App() {
 
           <div style={{
             padding: "12px 16px", background: C.panel, borderRadius: 4,
-            fontFamily: "'Source Serif 4', serif", fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
+            fontFamily: F.serif, fontSize: S.md, color: "#94a3b8", lineHeight: 1.7,
           }}>
             {dsResult && dsMultiplier ? (
               <>
-                Bold play is <span style={{ color: C.amber, fontFamily: "monospace", fontSize: 14 }}>
+                Bold play is <span style={{ color: C.amber, fontFamily: F.mono, fontSize: 14 }}>
                   {dsMultiplier}x
                 </span> more likely to reach the target — despite making{" "}
                 <span style={{ color: C.red }}>75% fewer bets</span>.
@@ -676,7 +691,7 @@ function App() {
           }}>
             <div style={{
               padding: "10px 16px", borderBottom: `1px solid ${C.border}`,
-              fontSize: 10, color: C.muted, letterSpacing: "0.08em",
+              fontSize: S.sm, color: C.muted, letterSpacing: "0.08em",
               display: "flex", justifyContent: "space-between", alignItems: "center",
             }}>
               <span>SANITY CHECK — Closed-form vs Monte Carlo</span>
@@ -704,7 +719,7 @@ function App() {
                       <td style={{ padding: "8px 16px", color: C.muted, fontFamily: "monospace" }}>{trials.toLocaleString()}</td>
                       <td style={{ padding: "8px 16px", color: C.muted, fontFamily: "monospace" }}>{(delta * 100).toFixed(5)}</td>
                       <td style={{ padding: "8px 16px" }}>
-                        <span style={{ color: pass ? C.green : C.red, fontSize: 10, letterSpacing: "0.06em" }}>
+                        <span style={{ color: pass ? C.green : C.red, fontSize: S.sm, letterSpacing: "0.06em" }}>
                           {pass ? "PASS" : "FLAG >1%"}
                         </span>
                       </td>
@@ -714,7 +729,7 @@ function App() {
               </table>
             </div>
             <div style={{
-              padding: "8px 16px", fontSize: 10, color: C.muted,
+              padding: "8px 16px", fontSize: S.sm, color: C.muted,
               borderTop: `1px solid ${C.border}`,
             }}>
               Trials auto-scaled per bet size to prevent browser freeze. Small bets = fewer trials.
@@ -725,7 +740,7 @@ function App() {
         {/* Citations */}
         <div style={{
           paddingTop: 16, borderTop: `1px solid ${C.border}`,
-          fontSize: 10, color: C.muted, lineHeight: 2,
+          fontSize: S.sm, color: C.muted, lineHeight: 2,
         }}>
           <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>CITATIONS</div>
           <div>[1] Dubins, L.E. & Savage, L.J. (1965). <em>How to Gamble If You Must: Inequalities for Stochastic Processes.</em> McGraw-Hill.</div>
